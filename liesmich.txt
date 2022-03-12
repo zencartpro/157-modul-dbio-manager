@@ -1,0 +1,19 @@
+Database I/O Manager (DbIo) für Zen Cart 1.5.7 deutsch
+
+DbIo ist eine modernere und flexiblere Variante des bekannten Moduls Easy Populate.
+Funktionalität und Handling sind Easy Populate weit überlegen.
+Export von Daten aus und Import von Daten in Ihre Zen Cart Datenbank
+Zahlreiche Exporte/Importe vordefiniert (Kunden, Bestellungen, Artikel, Metatags, Attribute, Sonderangebote,...) und flexibel erweiterbar und anpassbar
+
+Bei der Installation werden keinerlei bestehende Dateien geändert oder überschrieben.
+Einfach im Ordner NEUE DATEIEN den Ordner DEINADMIN auf den Namen des Adminverzeichnisses umbenennen und in der vorgegebenen Struktur ins Shopverzeichnis hochladen.
+Den Ordnern dbio und dbio/logs Schreibrechte geben (chmod 777)
+Danach ist in der Administration unter Tools der neue Menüpunkt Database I/O Manager vorhanden
+
+getestet mit:
+
+Zen Cart Version:
+1.5.7 deutsch
+
+PHP Version:
+8.0.x
