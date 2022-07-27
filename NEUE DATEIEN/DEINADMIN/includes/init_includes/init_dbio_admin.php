@@ -3,7 +3,7 @@
 // Part of the DataBase I/O Manager (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
 // Copyright (c) 2016-2022, Vinos de Frutas Tropicales.
 
-// Multilanguage Install - 2022-03-11 webchills
+// Multilanguage Install - 2022-07-27 webchills
 if (!defined('IS_ADMIN_FLAG')) {
     die('Illegal Access');
 }
@@ -15,8 +15,8 @@ if (empty($_SESSION['admin_id'])) {
     return;
 }
 
-define('DBIO_CURRENT_VERSION', '1.6.7');
-define('DBIO_CURRENT_UPDATE_DATE', '2022-02-09');
+define('DBIO_CURRENT_VERSION', '1.6.8');
+define('DBIO_CURRENT_UPDATE_DATE', '2022-07-27');
 
 $version_release_date = DBIO_CURRENT_VERSION . ' (' . DBIO_CURRENT_UPDATE_DATE . ')';
 
@@ -27,7 +27,7 @@ if ($configuration->EOF) {
                  (configuration_group_title, configuration_group_description, sort_order, visible) 
                  VALUES ('$configurationGroupTitle', '$configurationGroupTitle', 1, 1);");
     $cgi = $db->Insert_ID(); 
-    $db->Execute("UPDATE " . TABLE_CONFIGURATION_GROUP . " SET sort_order = $cgi WHERE configuration_group_id = $cgi;");
+    $db->Execute("UPDATE " . TABLE_CONFIGURATION_GROUP . " SET sort_order = $cgi WHERE configuration_group_id = $cgi");
 } else {
     $cgi = $configuration->fields['configuration_group_id'];
 }
@@ -40,7 +40,7 @@ if (defined('DBIO_MODULE_VERSION')) {
     $dbio_current_version = $dbio_versions[0];
 } else {
     $dbio_current_version = '0.0.0';
-    $db->Execute("INSERT INTO " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added, set_function) VALUES ('Version/Release Date', 'DBIO_MODULE_VERSION', '" . $version_release_date . "', 'The Database I/O Manager (DbIo) version number and release date.', $cgi, 1, now(), 'trim(')");
+    $db->Execute("INSERT INTO " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added, set_function) VALUES ('Version/Release Date', 'DBIO_MODULE_VERSION', '" . $version_release_date . "', 'The Database I/O Manager (DbIo) version number and release date.', $cgi, 1, now(),  'zen_cfg_read_only(')");
  
     $db->Execute("INSERT INTO " . TABLE_CONFIGURATION . " ( configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added, use_function, set_function ) VALUES ( 'CSV: Delimiter', 'DBIO_CSV_DELIMITER', ',', 'Enter the single character that is used to separate columns within any DbIo CSV file.  To use the tab-character as the delimiter value, enter the word <b>TAB</b>.  (Default: <b>,</b>)', $cgi, 5, now(), NULL, NULL)");
 
@@ -145,7 +145,7 @@ if (defined('DBIO_MODULE_VERSION')) {
 // -----
 // If the plugin's version has changed, see if there's any additional configuration settings to be set.
 //
-if (DBIO_CURRENT_VERSION != $dbio_current_version) {
+if (DBIO_CURRENT_VERSION !== $dbio_current_version) {
     // -----
     // Plugin version-specific updates ...
     //
@@ -187,7 +187,7 @@ if (DBIO_CURRENT_VERSION != $dbio_current_version) {
                  ) ENGINE=MyISAM"
             );
         }
-        
+
         // -----
         // If not already present, insert a couple of system-generated examples into the dbio_reports tables.
         //
@@ -211,7 +211,7 @@ if (DBIO_CURRENT_VERSION != $dbio_current_version) {
                         ($dbio_reports_id, $current_language_id, 'This template supports products'' quantity updates, creating an exported file that contains a product''s ID, model-number and current quantity.')"
                 );
             }
-            
+
             $db->Execute(
                 "INSERT INTO " . TABLE_DBIO_REPORTS . "
                     (handler_name, report_name, admin_id, last_updated_by, last_updated, field_info) 
@@ -230,7 +230,7 @@ if (DBIO_CURRENT_VERSION != $dbio_current_version) {
             }
         }
     }
-    
+
     if (version_compare($dbio_current_version, '1.3.0', '<')) {
         if (!defined('DBIO_PRODUCTS_AUTO_CREATE_CATEGORIES')) {
             $db->Execute(
@@ -248,7 +248,7 @@ if (DBIO_CURRENT_VERSION != $dbio_current_version) {
          );
         }
     }
-    
+
     if (version_compare($dbio_current_version, '1.6.4', '<')) {
         if (!defined('DBIO_PRODUCTS_INSERT_REQUIRES_COMMAND')) {
             $db->Execute(
@@ -356,7 +356,24 @@ if (DBIO_CURRENT_VERSION != $dbio_current_version) {
             ('<em>Artikel</em>: Soll das Anlegen fehlender Artikel ein spezielles Kommando erfordern?', 'DBIO_PRODUCTS_INSERT_REQUIRES_COMMAND', '43', 'Benötigt ein <em>Artikel</em> Import einen DbIo <code>ADD</code> Befehl? Wählen Sie <b>Nein</b> (Standardeinstellung), um die Erstellung von Produkten zuzulassen, wenn keine passende products_id und/oder kein passendes products_model gefunden wird.<br><br>Wählen Sie <b>Ja</b>, um jeglichen Artikel-Import zu verbieten, der zu einem neuen Produkt führt, es sei denn, der Befehl <code>ADD</code> ist vorhanden.', now(), now())"
          );
         }
+      }
+  
+    if (version_compare($dbio_current_version, '1.6.7', '<')) {
+        if ($sniffer->field_type(TABLE_DBIO_REPORTS, 'handler_name', 'varchar(255)')) {
+            $db->Execute(
+                "ALTER TABLE " . TABLE_DBIO_REPORTS . " MODIFY handler_name varchar(250) NOT NULL"
+            );
+        }
     }
+
+    if (version_compare($dbio_current_version, '1.6.8', '<')) {
+        $db->Execute(
+            "UPDATE " . TABLE_CONFIGURATION . "
+                SET set_function = 'zen_cfg_read_only('
+              WHERE configuration_key = 'DBIO_MODULE_VERSION'"
+        );
+    }
+
 
     // ----
     // Create the database tables for the I/O processing.
@@ -399,7 +416,7 @@ if (DBIO_CURRENT_VERSION != $dbio_current_version) {
     // -----
     // Versions prior to v1.6.0 had character defaults for numeric database fields, fix them up on any upgrade.
     //
-    if ($dbio_current_version != '0.0.0' && version_compare($dbio_current_version, '1.6.0', '<')) {
+    if ($dbio_current_version !== '0.0.0' && version_compare($dbio_current_version, '1.6.0', '<')) {
         $db->Execute(
             "ALTER TABLE " . TABLE_DBIO_REPORTS . "
                 ALTER admin_id SET DEFAULT 0,

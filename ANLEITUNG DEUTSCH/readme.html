@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Database I/O Manager (DbIo)</title>
+<link rel="icon" href="vinos_favicon.ico" type="image/x-icon" />
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<style>
+<!--
+a, a:active, a:visited { color: #006666; text-decoration: none; }
+a:hover { color:#00CC99; text-decoration: underline; }
+body, p, h1, h2, h3, h4, h5, h6, li, td, dd, img, dt, dl, table { font-family: Roboto, verdana, avantgarde, tahoma, arial, sans-serif; font-size: 12pt; color: black; padding: 0px; margin: 10px 20px; line-height: 1.75em; }
+h1, h2, h3, h4 { font-weight: bold; padding: 5px; }
+h1 { font-size: 20px; text-align: center; border-bottom: 1px solid #666; }
+h2 { font-size: 16px; }
+h2, h3 { border: 1px solid #666; background-color: #eee; }
+h1+h3 { border: none; background-color: inherit; }
+h5 { border-bottom: 1px dashed #666; padding-bottom: 5px; }
+code.no-pad, pre.no-pad { padding: 0; margin: 0; }
+.tableHead { background-color: #eee; }
+ol li, ol li p { margin-left: 0; }
+img { margin: 0 20px 10px; float: left; border: 1px solid #666; }
+img.wide { width: 95%; float: none; margin: 0 2.5%; }
+table, td, th { border: 1px solid black; border-collapse: collapse; }
+td, th { padding: 5px; }
+th { text-align: left; }
+span.title { font-style: italic; font-weight: bold; color: #006666; }
+.corefile, .red { color: red; }
+.template { color: green; }
+.added { color: blue; }
+.removed { text-decoration: line-through; }
+.osh { color: blue; }
+.minspacing li { margin: 0; }
+.smallimg { float: left; width: auto; margin: 0.5% 0.25% 0.25% auto; }
+ol li, ul li { margin-top: 5px; margin-bottom: 5px; }
+ul li ul { padding-left: 0; }
+dt { font-weight: bold; margin-bottom: 0; }
+dd { margin-top: 0; padding-left: 40px; }
+.table { display: table; padding-left: 0.5%; font-size: smaller; }
+.head_outer, .item_outer { display: table-row; }
+.thead, .item { display: table-cell; padding: 0.25% 0.25%;}
+.thead { font-weight: bold; }
+.table ul { list-style-type: none; padding-left: 0; margin: 0; }
+.table ul li { margin: 0; }
+.c1 { text-align: center; font-weight: bold; width: 15%; color: #333333; vertical-align: top; }
+.c3 { vertical-align: top; }
+.clearBoth { clear: both; }
+.smaller { font-size: smaller; }
+.e { background-color: #eee; }
+ul.simple, ul.simple li { list-style-type: none; padding: 0 0 0 0.5em; margin: 0; }
+#table-config-osm tr td:first-child, #table-config-osm tr th:first-child { width: 30em; }
+#overview-images { margin-right: 0.5em; }
+.back { float: left; }
+#fdcv ol { margin: 0; }
+.nowrap { white-space: nowrap; }
+.h-name { font-style: italic; font-weight: bold; }
+#t-handlers td, #t-handlers th { vertical-align: top; }
+
+.etabs { margin: 0; padding: 0; }
+.tab { display: inline-block; zoom:1; *display:inline; background: #eee; border: solid 1px #999; border-bottom: none; border-radius: 4px 4px 0 0; margin: 0; }
+.tab a { font-size: 14px; line-height: 2em; display: block; padding: 0 10px; outline: none; }
+.tab a:hover { text-decoration: underline; }
+.tab.active { background: #fff; padding-top: 6px; position: relative; top: 1px; border-color: #666; }
+.tab a.active { font-weight: bold; }
+.tab-container .panel-container { background: #fff; border: solid #666 1px; padding: 10px; border-radius: 0 4px 4px 4px; }
+.panel-container { margin-bottom: 10px; }
+
+#dbio_layout { text-align: center; float: right; background-color: #ebebeb; }
+#dbio_layout2 { padding: 0; }
+#dbio_layout2 table, #dbio_layout2 td { margin: 0; border: none; }
+#dbio_layout2 tr:first-child td { border-bottom: 1px solid black; }
+-->
+</style>
+<link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" />
+<script src="jquery-3.5.1.min.js"></script> 
+<script src="jquery.easytabs.min.js"></script>
+<script type="text/javascript">
+    $(document).ready( function() {
+        $('#tab-container').easytabs();
+    });
+</script>
+</head>
+
+<body>
+  <h1 id="title">Datenbank-I/O-Manager (DbIo) für Zen Cart deutsch</h1>
+  <p>Version 1.6.8 Copyright &copy; 2015-2022, <a href="https://vinosdefrutastropicales.com" target="_blank">Vinos de Frutas Tropicales</a>.</p>
+  <p>Current Support Thread on the Zen Cart forums: <a href="https://www.zen-cart.com/showthread.php?220569-Database-I-O-Manager-(DbIo)-Support-Thread" target="_blank">https://www.zen-cart.com/showthread.php?220569-Database-I-O-Manager-(DbIo)-Support-Thread</a></p>
+  
+  <div class="tab-container" id="outer-container">
+    <ul class="etabs">
+      <li class="tab"><a href="#overview">Übersicht</a></li>
+      <li class="tab"><a href="#installation">Installation</a></li>
+      <li class="tab"><a href="#customization">Anpassung</a></li>
+      <li class="tab"><a href="#dbio_manager">Verwendung des DbIo-Managers</a></li>
+      <li class="tab"><a href="#dbio_templates">DbIo-Vorlagen verwalten</a></li>
+      <li class="tab"><a href="#history">Änderungshistorie</a></li>
+    </ul>
+    
+    <div class="panel-container">
+  
+      <!-- start overview section -->
+      <div id="overview">
+        <noscript><h2>Übersicht</h2></noscript>
+        <p><em>DbIo</em> emuliert eines der populäreren Zen Cart Plugins &mdash; <em>Easy Populate</em> &mdash; und bietet &quot; Handler&quot; zur einfachen Eingabe (Import) von Daten in die Datenbank Ihres Warenkorbs und zur Ausgabe (Export) dieser Daten über eine Komma-separierten-Wert (CSV) oder tabulatorgetrennte Datei.  In <em>DbIo</em> ist ein &quot; Handler&quot; für alle I/O-Aktionen verantwortlich, die zur Unterstützung einer bestimmten Operation &hellip; erforderlich sind, wie das Importieren eines Satzes von Produktspezifikationen oder das Exportieren einer Liste von Kundenbestellungen.</p>
+        
+        <hr />  
+        <p>Warum <em>emulieren anstatt zur Entwicklung des EP-4 Plugins beizutragen?</em> Angesichts der Prinzipien, welche die Entwicklung von <em>DbIo</em> geleitet haben:</p>
+        <ol>
+          <li>Verwenden Sie die integrierte Verarbeitung von Zen Cart, insbesondere die Datenbankschnittstellen.</li>
+          <li>Verwenden Sie einen klassenbasierten Ansatz, der einen höheren Grad der Wiederverwendung von Code ermöglicht.</li>
+          <li>Lassen Sie die Datenbank die Daten steuern; verwenden Sie die Datenbankeinstellungen zur Führung &quot;ordnungsgemäßer&quot; Eingabeverarbeitung.</li>
+          <li>Den Datenpool konsistent halten; die Zeichenkodierung der CSV-Repositorys weitgehend definieren.</li>
+          <li>Halten Sie sich, wenn möglich, an die Schnittstelle <em>EP-4</em>, die in ihrem <a href="https://www.zen-cart.com/wiki/index.php/Easy_Populate" target="_blank">wiki</a> beschrieben ist.</li>
+          <li>Mehrsprachigkeit.</li>
+          <li>Seien Sie <em>datengesteuert</em>.  Wenn Sie ein Plugin installiert haben, das einfach ein Feld zu einer bestehenden Tabelle hinzufügt (wie Produkte oder Bestellungen), ist dieses Feld ein Kandidat für jede I/O-Operation auf dieser Datenbanktabelle ohne zusätzliche Kodierung.</li>
+        </ol>
+        <p>&hellip; Die <em>DbIo</em>-Verarbeitung ist eine <span class="red"><em>revolutionäre</em></span> Abspaltung von <em>Easy Populate</em>; etwaige Unterschiede zwischen der Handhabung von <em>EP-4</em> und <em>DbIo</em> werden in dieser Liesmich-Datei aufgezeigt.</p> 
+        
+      </div>
+      <!-- end overview section -->
+    
+      <!-- start installation section -->
+      <div id="installation">
+        <noscript><h2>Installieren, Aktualisieren oder Deinstallieren</h2></noscript>
+        <div class="tab-container" id="inner-container1">
+          
+          <p>Dieser Abschnitt beschreibt die Prozesse, die Sie verwenden werden, um <em>DbIo</em> zu installieren oder <em>DbIo</em> vollständig zu deinstallieren.</p>
+          
+          <ul class="etabs">
+            <li class="tab"><a href="#initial">Erstmalige Installation</a></li>
+            <li class="tab"><a href="#uninstall">Deinstallation</a></li>
+          </ul>
+
+          <div class="panel-container">
+
+            <div id="initial">
+              <noscript><h3>Erstmalige Installation</h3></noscript>
+              <p>Es werden weder <span class="corefile">Kern-Dateien</span> überschrieben noch <span class="template">Template-Überschreibungen</span>, die von diesem Plugin verwendet werden; Sie sollten <strong>immer</strong> die Datenbank und Dateien Ihres Shops sichern, bevor Sie irgendwelche Änderungen vornehmen. Entpacken Sie die Paketdatei des Plugins und dann:</p>
+              <ol type="A">
+                <li>Benennen Sie den Ordner DEIN_ADMIN so um, dass er dem Namen Ihres benutzerdefinierten Admin-Ordners entspricht.</li>
+                <li>Melden Sie sich im Administrationsbereich Ihres Zen Cart an.</li>
+                <li>Kopieren Sie die Dateien des Plugins in die Ordnerstruktur Ihres Shops:<ol>
+                  <li>/DEIN_ADMIN/dbio_manager.php</li>
+                  <li>/DEIN_ADMIN/dbio_customize.php <span class="smaller">(Hinzugefügt in v1.2.0)</span></li>
+                  <li>/DEIN_ADMIN/dbio/*.*</li>
+                  <li><span class="removed">/DEIN_ADMIN/images/icons/dbio_information.png</span> <span class="smaller">(Entfernt in v1.2.0)</span></li>
+                  <li>/DEIN_ADMIN/includes/auto_loaders/config.dbio_admin.php</li>
+                  <li>/DEIN_ADMIN/includes/boxes/extra_boxes/dbio_tools_dhtml.php</li>
+                  <li>/DEIN_ADMIN/includes/classes/dbio/*.*</li>
+                  <li>/DEIN_ADMIN/includes/extra_datafiles/dbio_file_database_names_admin.php</li>
+                  <li>/DEIN_ADMIN/includes/functions/dbio_manager_functions.php</li>
+                  <li>/DEIN_ADMIN/includes/functions/dbio_mb_string_functions.php <span class="smaller">(Hinzugefügt in v1.4.1)</span></li>
+                  <li>/DEIN_ADMIN/includes/functions/dbio_string_functions.php <span class="smaller">(Hinzugefügt in v1.4.1)</span></li>
+                  <li>/DEIN_ADMIN/includes/functions/extra_functions/dbio_functions.php</li>
+                  <li>/DEIN_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+                  <li>/DEIN_ADMIN/includes/javascript/dbio/*.*</li>
+                  <li>/DEIN_ADMIN/includes/languages/english/dbio_manager.php</li>
+                  <li>/DEIN_ADMIN/includes/languages/english/dbio_customize.php <span class="smaller">(Hinzugefügt in v1.2.0)</span></li>
+                  <li>/DEIN_ADMIN/includes/languages/english/dbio/*.*</li>
+                  <li>/DEIN_ADMIN/includes/languages/english/extra_definitions/dbio_admin_extra_definitions.php</li>
+                  <li>/DEIN_ADMIN/includes/languages/german/dbio_manager.php</li>
+                  <li>/DEIN_ADMIN/includes/languages/german/dbio_customize.php <span class="smaller">(Hinzugefügt in v1.2.0)</span></li>
+                  <li>/DEIN_ADMIN/includes/languages/german/dbio/*.*</li>
+                  <li>/DEIN_ADMIN/includes/languages/german/extra_definitions/dbio_admin_extra_definitions.php</li>
+                </ol></li>
+                <li>Klicken Sie auf den Link &quot;Admin Startseite&quot; im oberen Admin-Menü Ihres Zen Cart. Diese Aktion bewirkt, dass das Installationsskript des Plugins ausgeführt wird.</li>
+              </ol>
+            </div>
+            
+            <div id="uninstall">
+              <noscript><h3>Deinstallation</h3></noscript>
+              <p>Löschen Sie zunächst die Dateien, die in das Dateisystem Ihres Zen Cart kopiert wurden, kopieren Sie dann den Inhalt von <code>/UNINSTALL/uninstall_dbio.sql</code> in die Zwischenablage und fügen Sie ihn ins Eingabefeld von <em>Tools-&gt;SQL-Patches installieren</em> Ihres Adminbereichs ein, um den Deinstallationsvorgang abzuschließen.</p>
+            </div>
+
+          </div>
+        </div>
+</div>
+       <!-- end installation section -->
+       
+      <!-- start customization section -->
+      <div id="customization">
+        <noscript><h2>Anpassen Ihrer <em>DbIo</em> Installation</h2></noscript>
+        <p>Dieser Abschnitt beschreibt die Schritte, die Sie zur Anpassung Ihrer <em>Datenbank-I/O-Manager</em> Installation durchführen.</p>
+        <p><strong>Hinweis:</strong> Die Erweiterung <em>DbIo</em> erfordert für ihren korrekten Betrieb das Laden der PHP-Erweiterung <code class="no-pad">php-mbstring</code>; wenn sie nicht installiert ist, erhalten Sie eine Fehlermeldung, wenn Sie versuchen, <em>Tools-&gt;Database I/O Manager</em> zu verwenden.  Wenn Sie diese Meldung erhalten, müssen Sie Ihren Webhoster kontaktieren und beantragen, dass die Erweiterung auf den Server Ihres Shops geladen wird.</p>
+        <div class="tab-container" id="inner-container2">
+          <ul class="etabs">
+            <li class="tab"><a href="#considerations">Anmerkungen</a></li>
+            <li class="tab"><a href="#configure">Konfigurationn</a></li>
+            <li class="tab"><a href="#handlers">I/O Handlers</a></li>
+            <li class="tab"><a href="#naming">Benennungskonventionen</a></li>
+          </ul>
+          
+          <div class="panel-container">
+            <div id="considerations">
+              <noscript><h3>Anmerkungen</h3></noscript>
+              <p>Hier sind einige Dinge, die Sie beim Einrichten und Konfigurieren Ihrer <em>DbIo</em> Installation beachten sollten:</p>
+              <ol>
+                <li><span class="title">Zeichenkodierung.</span> Ich weiß, langweiliges Zeug, aber es ist <b>sehr wichtig</b> für die korrekte Funktion von <em>DbIo</em>! Bei der Installation des Plugins wird überprüft, ob die grundlegende Zeichenkodierung Ihres Shops &quot;richtig&quot; ist, indem geprüft wird, ob der <code>CHARSET</code> Ihres Shops mit den <code>DB_CHARSET</code>-Werten Ihres Shops kompatibel ist. Es ist <b>Ihre</b> Aufgabe, den Zeichensatz, der von dem von Ihnen ebenfalls verwendeten Tabellenkalkulationstool (z.B. Apache OpenOffice oder Microsoft Excel) verwendet wird, richtig zu identifizieren.<p>Sie verwenden die Einstellung <em>Konfiguration-&gt;DbIo-Manager-Einstellungen-&gt;CSV: Codierung</em>, um <em>DbIo</em> anzuweisen, wie die Daten zu interpretieren sind, die aus einer <code>CSV</code>-Datei stammen oder zu einer <code>CSV</code>-Datei gehen.  Setzen Sie diesen Wert auf <b>utf8</b>, wenn Sie <em>Apache OpenOffice</em> (oder ein anderes bekanntes utf8-generierendes Programm) verwenden, oder auf <b>latin1</b>, wenn Sie <em>Microsoft Excel</em> verwenden.</p></li>
+                <li><span class="title">Dateibenennung.</span> <em>DbIo</em> verwendet den Namen eines I/O &quot; Handler&quot; um Dateien zu identifizieren, die von diesem Handler verarbeitet werden sollen.  Beispielsweise befinden sich alle <code>CSV</code> Dateien, die von dem Handler <em>Featured</em> verarbeitet werden sollen, im Ordner <code>/DEIN_ADMIN/dbio/</code> und tragen den Namen <code class="nowrap">dbio.<b>Featured</b>.<em>irgendwas</em>.csv</code>.</li>
+                <li><span class="title">Sprachspezifische Felder.</span> Während <em>EP-4</em> die Konvention des Anhängens der <code>language_id</code> (z.B. v_products_name<b>_1</b>) verwendet, um sprachspezifische Felder zu identifizieren, hängt <em>DbIo</em> bei der Identifizierung sprachspezifischer Werte den (portableren) <code>language_code</code> (z.B. v_products_name<b>_en</b>) an.</li>
+                <li><span class="title">Datensatzentfernung.</span> Während <em>EP-4</em> die Konvention verwendet, den <code>products_status</code> auf einen Wert von <b>9</b> zu setzen, um ein zu entfernendes Produkt zu kennzeichnen, führt <em>DbIo</em> eine neue Spalte (<code>v_dbio_command</code>) ein, die ein Handler <em>konditional</em> aktivieren kann, um die Datensatzentfernung und/oder andere Befehle zu unterstützen.  Beginnend mit v1.1.0 unterstützt die Handhabung von <em>Produkte</em> dieses Feld; setzen Sie den Wert dieser Spalte für ein bestimmtes Produkt auf <code>ENTFERNEN</code> und, falls das Produkt existiert, wird es entfernt.</li>
+              </ol>
+            </div>
+            
+            <div id="configure">
+              <noscript><h3>Konfiguration-&gt;DbIo-Manager-Einstellungen</h3></noscript>
+              <p>Nachdem Sie <em>DbIo</em> installiert haben, können Sie die Grundeinstellungen über <em>Konfiguration-&gt;DbIo-Manager-Einstellungen</em> anpassen:</p>
+              <table>
+                <tr class="tableHead">
+                  <th>Feldname</th>
+                  <th>Feldbeschreibungen</th>
+                </tr>
+                <tr>
+                  <td>Version/Freigabedatum</td>
+                  <td>Zeigt die Versionsnummer und das Veröffentlichungsdatum des Plugins an.</td>
+                </tr>
+                <tr>
+                  <td>CSV: Begrenzer</td>
+                  <td>Geben Sie das einzelne Zeichen ein, das zum Trennen von Spalten innerhalb einer DbIo-CSV-Datei verwendet wird. Um das Tabulator-Zeichen als Trennzeichen zu verwenden, geben Sie das Wort <b>TAB</b> ein.  Standardmäßig wird das Komma-Zeichen (,) verwendet.</td>
+                </tr>
+                <tr>
+                  <td>CSV: Anhang</td>
+                  <td>Geben Sie das einzelne Zeichen ein, das zum Einschließen von Feldern innerhalb einer DbIo-CSV-Datei verwendet wird. Standardmäßig wird das Zeichen mit doppelten Anführungszeichen (") verwendet.</td>
+                </tr>
+                <tr>
+                  <td>CSV: Escape</td>
+                  <td>Geben Sie das einzelne Zeichen ein, das als Escape-Zeichen in jeder DbIo-CSV-Datei verwendet wird. Standardmäßig wird das Backslash (\)-Zeichen verwendet.</td>
+                </tr>
+                <tr>
+                  <td>CSV: Kodierung</td>
+                  <td>Wählen Sie die Art der Kodierung, die mit <b>allen</b> DbIo I/O-Dateien verknüpft werden soll. Wenn Sie Microsoft&reg; Excel verwenden, wählen Sie <em>latin1</em>; wenn Sie Apache OpenOffice verwenden, wählen Sie <em>utf8</em>.</td>
+                </tr>
+                <tr>
+                  <td>CSV: Datumsformat importieren</td>
+                  <td>Wählen Sie das Format, das von jeder DbIo CSV-Datei beim Import der Felder <code>date</code> und <code>datetime</code> verwendet wird, eines der Felder:<ul class="simple">
+                    <li><b>m-d-y</b></li>
+                    <li><b>d-m-y</b></li>
+                    <li><b>y-m-d</b></li>
+                  </ul>Standard: <b>m-d-y</b></td>
+                </tr>
+                <tr>
+                  <td>Maximale Ausführungszeit (Sekunden)</td>
+                  <td>Geben Sie die maximale Ausführungszeit für eine DbIo-Operation in Sekunden ein.  Voreinstellung: <b>60</b></td>
+                </tr>
+                <tr>
+                  <td>Geteilte Datei: Anzahl der Datensätze</td>
+                  <td>Manchmal kann das Aufteilen einer csv-Datei in mehrere kleinere Dateien helfen, wenn Ihr Server bei einem Importvorgang eine Zeitüberschreitung hat oder wenn eine exportierte csv-Datei zu groß ist, um sie in einem einzigen Chunk herunterzuladen. Geben Sie die Anzahl der Datensätze (Standard: <b>2000</b>) ein, in die diese Dateien mit dem <em>Database I/O Manager</em> aufgeteilt werden sollen.</td>
+                </tr>
+                <tr>
+                  <td>Standard-Dateisortierreihenfolge</td>
+                  <td>Wählen Sie die Standard-Sortierreihenfolge, die der <em>Database I/O Manager</em> bei der Anzeige der entdeckten I/O-Dateien verwendet, eine davon:<ul class="simple">
+                    <li><b>1a</b>: Dateiname, aufsteigend</li>
+                    <li><b>1d</b>: Dateiname, absteigend</li>
+                    <li><b>2a</b>: Dateigröße, aufsteigend</li>
+                    <li><b>2d</b>: Dateigröße, absteigend</li>
+                    <li><b>3a</b>: Dateidatum, aufsteigend</li>
+                    <li><b>3d</b>: Dateidatum, absteigend (Standard)</li>
+                  </ul></td>
+                </tr>
+                <tr>
+                  <td><em>Produkte</em> Importieren:  Doppelte Artikelnummern erlauben?</td>
+                  <td>Wählen Sie, ob (<b>Ja</b>) oder nicht (<b>Nein</b>) jeder <code class="no-pad">Produkt</code>-Import erlaubt sein soll, um die &quot;Artikelnummer&quot; eines bestehenden Produkts zu ändern. Voreinstellung: <b>Nein</b>. <span class="smaller">(Eingeführt in v1.1.0)</span>.</td>
+                </tr>
+                <tr>
+                  <td><em>Produkte</em>: Artikel anlegen erforder Befehl?</td>
+                  <td>Benötigt ein <em>Artikel</em> Import einen DbIo <code>ADD</code> Befehl? Wählen Sie <b>No</b> (Voreinstellung) um es zu erlauben, dass Artikel angelegt werden falls keine übereinstimmende products_id und/oder products_model gefunden wird.<br><br>Wählen Sie <b>Yes</b> um jeden Artikelimport zu verbieten, der zum Anlegen eines neuen Artikels führen würde außer der <code>ADD</code> Befehl ist vorhanden. <span class="smaller">(Neu seit v1.6.4)</span></td>
+                </tr>
+                <tr>
+                  <td><em>Produkte</em>: Kategorien beim Import automatisch erstellen?</td>
+                  <td>Wie soll die <em>DbIo</em> fehlende Kategorien auf einem <em>Produkt</em>-Import behandeln?  Wählen Sie <b>Ja</b>, um alle fehlenden Kategorien automatisch generieren zu lassen; wählen Sie <b>Nein</b> (die Voreinstellung), um den Import von Produkten zu unterbinden, wenn die Kategorien vorher noch nicht existieren. <span class="smaller">(Eingeführt in v1.3.0)</span></td>
+                </tr>
+                <tr>
+                  <td>Debuggen aktivieren?</td>
+                  <td>Bestimmen Sie, ob (<b>true</b>) oder nicht (<b>false</b>, die Voreinstellung) der DbIo-Debug aktiviert werden soll. Wenn aktiviert, wird der gesamte I/O-Status in eine dbio-*.log-Datei im Ordner <code>/DEIN_ADMIN/dbio/logs</code> Ihres Shops geschrieben.</td>
+                </tr> 
+                <tr>
+                  <td>Datumsformat debuggen</td>
+                  <td>Geben Sie die Formatierungszeichenfolge ein, die zum Zeitstempeln aller DbIo-Log-Einträge verwendet wird; weitere Informationen finden Sie in der Beschreibung der PHP-Funktion <a href="http://php.net/manual/en/function.date.php" target="_blank">date</a>. (Voreinstellung: <b>Y-m-d H:i:s</b>).</td>
+                </tr>
+              </table>
+              
+            </div>
+            
+            <div id="handlers">
+              <noscript><h3>DbIo-Handler</h3></noscript>
+              <p><em>DbIo</em> verwendet &quot;Handler&quot; Skripte zum Anpassen einer I/O-Aktion; die folgende Tabelle zeigt die derzeit angebotenen <em>Handler</em>.</p>
+              <table id="t-handlers">
+                <tr>
+                  <th>Handler Name</th>
+                  <th>Aktionen</th>
+                  <th>Export-Filter</th>
+                  <th>Anpassbar?</th>
+                  <th>Beschreibung</th>
+                  <th>EP-4 Name</th>
+                </tr>
+                
+                <tr>
+                  <td class="h-name">Customers</td>
+                  <td>Export</td>
+                  <td>Keine</td>
+                  <td>No</td>
+                  <td>Dieser Handler stellt den <em> Nur-Export </ em> aller Felder in der Tabelle <code>customers</code> der Datenbank zur Verfügung.</td>
+                  <td>&mdash;</td>
+                </tr> 
+                
+                <tr>
+                  <td class="h-name">Featured</td>
+                  <td>Import, Export</td>
+                  <td>Keine</td>
+                  <td>Nein</td>
+                  <td>Dieser Handler ermöglicht den Import und Export aller Felder in der Tabelle <code>featured</code> der Datenbank.</td>
+                  <td>Featured Products</td>
+                </tr> 
+                
+                <tr>
+                  <td class="h-name">Manufacturers</td>
+                  <td>Import, Export</td>
+                  <td>Keine</td>
+                  <td>Nein</td>
+                  <td>Dieser Handler ermöglicht den Import und Export aller Felder in den Tabellen <code>manufacturers</code> und <code>manufacturers_info</code> der Datenbank, hinzugefügt in v1.2.0.</td>
+                  <td>&mdash;</td>
+                </tr>
+                
+                <tr>
+                  <td class="h-name">Orders</td>
+                  <td>Export</td>
+                  <td>Orders Status, ID Range, Date Range</td>
+                  <td>Ja</td>
+                  <td>Dieser Handler unterstützt den <em>nur-Export</em> aller Felder innerhalb der Tabelle <code>orders</code>.  Die Information <em> enthält nicht </em> die zugehörigen Produkte oder deren Attribute.</td>
+                  <td>&mdash;</td>
+                </tr> 
+                
+                <tr>
+                  <td class="h-name">OrdersProducts</td>
+                  <td>Export</td>
+                  <td>Orders Status, ID Range, Date Range</td>
+                  <td>Nein</td>
+                  <td>Dieser Handler unterstützt den <em>nur-Export</em> der Kundeninformationen einer Bestellung sowie die Artikelnummern und -namen der zugehörigen Produkte. </td>
+                  <td>&mdash;</td>
+                </tr>
+                
+                <tr>
+                  <td class="h-name">OrdersProductsAttributes</td>
+                  <td>Export</td>
+                  <td>Orders Status, ID Range, Date Range</td>
+                  <td>Nein</td>
+                  <td>Dieser Handler unterstützt einen <em>nur-Export</em> der Kundeninformationen einer Bestellung und die Artikelnummern, -namen und -attribute der zugehörigen Produkte (Option-Name/Wert-Paare).</td>
+                  <td>Filterable Order Exports: Orders Full</td>
+                </tr>
+                
+                <tr>
+                  <td class="h-name">Products</td>
+                  <td>Import, Export</td>
+                  <td>Product Status, Manufacturer, Category</td>
+                  <td>Ja</td>
+                  <td>Dieser Handler unterstützt den Import/Export von <b>allen</b> Feldern innerhalb der Tabellen <code>products</code>, <code>products_description</code> und <code>meta_tags_products_description</code>, den grundlegenden Produktinformationen.<ol>
+                    <li>Seit <em>DbIo</em> v1.1. 0 kann der Datensatz eines Produkts entweder über seinen <code>products_id</code> oder <code>products_model</code> gefunden werden (<b>beide Spalten sind <em>erforderlich</em> in der Importdatei</b>), und ein vorhandenes Produkt kann <em>entfernt</em> werden, indem eine Spalte <code>v_dbio_command</code> erstellt wird, in der der Eintrag eines Produkts auf <code>ENTFERNEN</code> gesetzt wird.  Beginnend mit v1.4.0 kann die Erstellung eines Produktdatensatzes erzwungen werden, wenn die Spalte <code>v_dbio_command</code> für das Produkt auf <code>ADD</code>.</li> gesetzt ist.
+                    <li>Seit v1.3.0, wenn eine nicht existierende Kategorie in einem Feld <code>v_categories_name</code> angegeben ist, steuern Sie, ob diese Kategorie automatisch generiert wird; weitere Informationen finden Sie im Register <em>Konfigurieren</em>.  Beachten Sie, dass Kategorien nicht innerhalb von Kategorien erstellt werden können, die derzeit Produkte enthalten, und dass Produkte nicht zu Kategorien hinzugefügt werden können, die derzeit Unterkategorien enthalten.</li>
+                    <li>Neu seit v1.6.4: Mit dem Befehl <code>UNLINK</code> können Sie die Verknüpfung eines Artikels mit der Kategorie, die durch das Feld <code>v_categories_name</code> identifiziert wird, aufheben.  Der Artikel und die Kategorie müssen beide existieren und die <code>categories_id</code>, die dem Namen der Kategorie zugeordnet ist, darf nicht die &quot;master_categories_id&quot; des Artikels sein. </li>
+                  </ol></td>
+                  <td>Complete Products</td>
+                </tr> 
+                 
+                <tr>
+                  <td class="h-name">ProductsOptions</td>
+                  <td>Import, Export</td>
+                  <td>Keine</td>
+                  <td>Nein</td>
+                  <td>Dieser Handler unterstützt den Import/Export von <b>allen</b> Feldern innerhalb der Tabelle <code>products_options</code>, der Informationen zu den Optionen der Produkte enthält.  Beim Import von  <b>neuen</b> Datensätzen für einen mehrsprachigen Shop sollte der Import einmal pro Sprachwert durchgeführt werden.  Andernfalls wird die products_options_id zwischen den mehreren Sprachen "out-of-sync".</td>
+                  <td>&mdash;</td>
+                </tr> 
+
+                <tr>
+                  <td class="h-name">ProductsOptionsValues</td>
+                  <td>Import, Export</td>
+                  <td>Keine</td>
+                  <td>Nein</td>
+                  <td>Dieser Handler unterstützt den Import/Export von <b>allen</b> Feldern innerhalb der Tabelle <code>products_options_values</code>, die Informationen über die Werte der Optionen der Produkte enthalten.  Beim Import von  <b>neuen</b> Datensätzen für einen mehrsprachigen Shop sollte der Import einmal pro Sprachwert durchgeführt werden.  Andernfalls wird die products_options_id zwischen den mehreren Sprachen "out-of-sync".</td>
+                  <td>&mdash;</td>
+                </tr>  
+
+                <tr>
+                  <td class="h-name">ProductsAttribsBasic</td>
+                  <td>Import, Export</td>
+                  <td>Keine</td>
+                  <td>Nein</td>
+                  <td>Dieser Handler unterstützt den Import/Export der Basisfelder, die mit der Tabelle <code>products_attributes</code> verknüpft sind, wobei ein <code>products_model</code> Wert verwendet wird, um ein Produkt mit den Attributwerten zu verknüpfen (<code>products_options_type, products_options_name und products_options_values name</code>).</td>
+                  <td>Basic Products Attributes</td>
+                </tr>  
+
+                <tr>
+                  <td class="h-name">ProductsAttribsRaw</td>
+                  <td>Import, Export</td>
+                  <td>Keine</td>
+                  <td>Nein</td>
+                  <td>Dieser Handler unterstützt den Import/Export von <b>allen</b> Feldern, die mit der Tabelle <code>products_attributes</code> assoziiert sind, wobei die Werte <code>products_id</code>, <code>options_id</code> und <code>options_values_id</code> verwendet werden, um einen Datensatz in der Tabelle zu identifizieren und somit festzustellen, ob es sich bei dem Datensatz um ein Insert oder ein Update handelt.</td>
+                  <td>Detailed Products Attributes</td>
+                </tr>  
+
+                <tr>
+                  <td class="h-name">ProductsDiscountQuantity</td>
+                  <td>Import, Export</td>
+                  <td>Keine</td>
+                  <td>Nein</td>
+                  <td>Dieser Handler unterstützt den Import/Export von Feldern, die mit der Tabelle <code>products_discount_quantity</code> verbunden sind, wobei der Wert <code>products_id</code> verwendet wird, um das Produkt zu identifizieren, für das die Rabattmengen aktualisiert werden sollen.  Weitere Informationen finden Sie in den Bildschirmanweisungen des Handlers.</td>
+                  <td>&mdash;</td>
+                </tr>
+
+                <tr>
+                  <td class="h-name">Specials</td>
+                  <td>Import, Export</td>
+                  <td>Keine</td>
+                  <td>Nein</td>
+                  <td>Dieser Handler unterstützt den Import/Export von Feldern, die mit der Tabelle <code>specials</code> verbunden sind, indem er den Wert <code>products_id</code> verwendet, um das Produkt zu identifizieren, für das ein Sonderangebot aktualisiert werden soll.  Weitere Informationen finden Sie in den Bildschirmanweisungen des Handlers.<br /><br />Das Sonderangebot eines Produkts-<em>Sonderpreis</em> kann mit Hilfe einer Spalte <code>v_dbio_command</code> entfernt werden, wobei der Wert auf <b>ENTFERNEN</b> gesetzt wird.</td>
+                  <td>&mdash;</td>
+                </tr>
+
+                <tr>
+                  <td class="h-name">Stats</td>
+                  <td>Export</td>
+                  <td>Keine</td>
+                  <td>Nein</td>
+                  <td>Dieser Handler unterstützt den Export von <b>allen</b> Feldern, die in der Tabelle <code>dbio_stats</code> vorhanden sind, wobei <em>DbIo</em> seine Statistiken aufzeichnet.  Ab v1.6.0 wird die Tabelle geleert, sobald sie exportiert wurde.</td>
+                  <td>&mdash;</td>
+                </tr>  
+                
+              </table>
+            </div>
+            
+            <div id="naming">
+              <noscript><h3>Namenskonventionen</h3></noscript>
+              <p>Es folgen die <em>Benennungskonventionen</em>, die vom <em>Database I/O Manager</em> verwendet werden:</p>
+              <ol>
+                <li><span class="title">Handler Names.</span> Ein <em>Handler's</em>-Name besteht aus Zeichen, die mit [a-zA-Z0-9_] übereinstimmen, so dass der Name des Handlers als sein Klassenname angenommen werden kann. Es werden keine Prüfungen durchgeführt; Sie erhalten einen PHP-Fehler, wenn der Name nicht eine &quot;gute&quot; PHP-Variable ist.</li>
+                <li><span class="title">Handler Files.</span> Ein Handler namens <b >MyHandler</b> stellt zwei Dateien zur Verfügung (und, ja, <b>Case ist signifikant</b>):<ol>
+                  <li><code class="no-pad">/DEIN_ADMIN/includes/classes/dbio/DbIo<b>MyHandler</b>Handler.php</code></li>
+                  <li><code class="no-pad">/DEIN_ADMIN/includes/languages/english/dbio/DbIo<b>MyHandler</b>Handler.php</code></li>
+                </ol></li>
+                <li><span class="title">Handler-Nachrichten.</span> Nachrichten, die in der Sprachdatei eines Handlers definiert sind, sollten auf der Basis von <b>HandlerName</b> benannt werden: DBIO_<b>HANDLERNAME</b>_*.</li>
+              </ol>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      <!-- end customization section -->
+      
+      <!-- start dbio_manager section -->
+      <div id="dbio_manager">
+        <noscript><h2>Verwendung des DbIo-Managers</h2></noscript>
+        <p>Dieser Abschnitt beschreibt die Verwendung des Werkzeugs <em>Tools-&gt;Database I/O Manager</em>.</p>
+        <div class="tab-container" id="inner-container3">
+          <ul class="etabs">
+            <li class="tab"><a href="#manager">Organisatorische Darstellung</a></li>
+            <li class="tab"><a href="#export-area">Export-Bereich</a></li>
+            <li class="tab"><a href="#config-area">Konfigurationsbereich</a></li>
+            <li class="tab"><a href="#upload-area">Datei-Upload-Bereich</a></li>
+            <li class="tab"><a href="#import-area">Import/Datei-Aktionsbereich</a></li>
+            <li class="tab"><a href="#dbio_files">Datei-Speicherorte</a></li>
+          </ul>
+          <div class="panel-container">
+            
+            <div id="manager">
+              <noscript><h3>Organisatorische Darstellung</h3></noscript>
+              <table id="dbio_layout">
+                <tr>
+                  <td colspan="2">Auswahlbereich</td>
+                </tr>
+                <tr>
+                  <td>Export-Bereich</td>
+                  <td>Datei-Upload-Bereich</td>
+                </tr>
+                <tr>
+                  <td>Import/Datei-Aktionsbereich</td>
+                  <td>Konfigurationsbereich</td>
+                </tr>
+              </table>
+              <div id="dbio_layout_desc">
+                <p>Der <em>Database I/O Manager</em> gliedert seine Anzeige in fünf (5) Abschnitte:</p>
+                <ol>
+                  <li><b>Auswahlbereich</b>: Der oberste Teil der Anzeige enthält eine Dropdown-Auswahl, in der Sie den <em>Handler</em> wählen, der für die aktuelle Gruppe von Aktionen verwendet werden soll.  Dieser einmal gewählte Handler wird in der aktuellen Admin-Sitzung gespeichert, so dass der <b><i>DbIo-Manager</i><</b> sich Ihre letzte Auswahl für die Dauer des Admin-Logins merkt.</li>
+                  <li><b>Exportbereich</b>: Der obere linke Teil der Anzeige identifiziert die für den Export des aktuellen Handlers verfügbaren Funktionen.  Einige der Handler (wie <em>Orders</em>) bieten zusätzliche Filter, um ihre Ausgabeauswahl einzuschränken und die Anpassung der exportierten Felder zu unterstützen.</li>
+                  <li><b>Datei-Upload-Bereich</b>: Im oberen rechten Teil der Anzeige finden Sie ein Formular, das Sie verwenden, wenn Sie eine <code class="no-pad">CSV</code>-Datei von Ihrem Computer hochladen möchten, um die <em>DbIo</em> zu bearbeiten.  Diese Datei wird nach dem erfolgreichen Hochladen im Ordner <code class="no-pad">/DEIN_ADMIN/dbio</code> im Shop gespeichert.</li>
+                  <li><b>Import/Datei-Aktionsbereich</b>: Der untere linke Teil der Anzeige zeigt die Liste der für den ausgewählten Handler verfügbaren <code class="no-pad">.csv</code> und <code class="no-pad">.log</code> Dateien an.  Innerhalb dieses Abschnitts können Sie eine Datei zum Importieren, Aufteilen, Herunterladen oder Löschen auswählen; weitere Einzelheiten finden Sie auf der Registerkarte <b><em>Andere Dateiaktionen</em></b>.</li>
+                 <li><b>Konfigurationsbereich</b>: Der untere rechte Teil des Displays zeigt Ihnen die <em>DbIo-Manager-Einstellungen</em>, die Sie derzeit konfiguriert haben, sowie einige relevante systembezogene Einstellungen.</li>
+                </ol>
+              </div>
+              <div class="clearBoth"></div>
+            </div>
+            
+            <div id="export-area">
+              <noscript><h3>Export-Bereich</h3></noscript>
+              <p>Dieser Abschnitt zeigt die für den aktuell ausgewählten Handler verfügbaren Exportoptionen an. Einige der Handler, wie z.B. <em>Orders</em> (siehe unten), verwenden zusätzliche Filter, die es Ihnen ermöglichen, die Ausgabe des Exports einzuschränken und/oder Anpassungen der Exportvorlage zu ermöglichen.</p>
+              <p>Filter, wenn sie vom ausgewählten Handler unterstützt werden, werden zunächst nicht angezeigt, da die Erzeugung dieser Filter bei Shops mit großen Datenbanken die Leistung der Tools negativ beeinflussen kann.  Wenn Sie das Kästchen &quot;show/hide filters&quot; ankreuzen, aktivieren/deaktivieren Sie das automatische Rendern der Filter für <stronge>alle</stronge> Handler (die Auswahl wird in den Sitzungsvariablen des aktuell angemeldeten Administrators gespeichert).</p>
+              <p>Vorlagen, sofern vom ausgewählten Handler unterstützt, ermöglichen es Ihnen, eine Teilmenge der Felder des Handlers zu exportieren.  Weitere Informationen finden Sie auf der Registerkarte <strong>DbIo-Vorlagen verwalten</strong>.  Wenn ein Handler Vorlagen unterstützt, wie <em>Orders</em>, können Sie eine zuvor angepasste Vorlage verwenden oder auf die Schaltfläche &quot;Vorlagen verwalten&quot; klicken, um eine neue Vorlage zu erstellen.</p>
+              <p>Treffen Sie Ihre Auswahl aus den vom aktuellen Handler bereitgestellten Optionen und klicken Sie auf die Schaltfläche <b><em>Export</em></b>; die exportierte Datei <code class="no-pad">.csv</code> wird im Ordner <code class="no-pad">/DEIN_ADMIN/dbio</code> erstellt.  Wenn Sie ab v1.6.0 das Kontrollkästchen neben der Schaltfläche <b><em>Export</em><</b> ankreuzen, wird die erzeugte .csv-Datei beim Export sofort heruntergeladen; diese Einstellung lautet &quot;erinnern&quot; in der aktuell angemeldeten Admin-Sitzung.</p>
+              <p><strong>Hinweis:</strong> Zusätzliche Verarbeitungszeit wird für den <em>DbIo Manager</em> Export benötigt, wenn Sie den Debug-Modus des Plugins aktiviert haben.</p>
+              <img class="wide" src="export_area.jpg" alt="DbIo Export Area" title="DbIo Export Area" />
+            </div>
+            
+            <div id="config-area">
+              <noscript><h3>Konfigurationsbereich</h3></noscript>
+              <img src="config_area.jpg" alt="DbIo Configuration Area" title="DbIo Configuration Area" />
+              <p>Dieser Abschnitt zeigt einfach die aktuellen Konfigurationseinstellungen (und einige der anwendbaren Systemeinstellungen) des <em>DbIo</em> an, damit Sie wissen, wie der <em>DbIo-Manager</em> Ihre Anfrage bearbeiten wird.  Wenn Sie auf den Link klicken, gelangen Sie auf die Seite <em>Konfiguration-&gt;Database-I/O-Manager-Einstellungen</em>.</p>
+              <div class="clearBoth"></div>
+            </div>
+             
+            <div id="upload-area">
+              <noscript><h3>Datei-Upload-Bereich</h3></noscript>
+              <img src="upload_area.jpg" alt="DbIo Upload Area" title="DbIo Upload Area" />
+              <p>Wenn der aktuell ausgewählte Handler Importe unterstüzt, können Sie diesen Abschnitt verwenden, um alle <code class="no-pad">.csv</code> Dateien hochzuladen, die Sie in die Datenbank Ihrer Website importieren möchten.  Verwenden Sie die Schaltfläche &quot;Browse&quot;, um Ihre Datei auszuwählen. Stellen Sie sicher, dass die Datei nicht größer ist als die im Konfigurationsbereich <em>DbIo</em> angezeigte <b>Maximale Datei-Upload-Größee</b>, und klicken Sie dann auf die Schaltfläche &quot;Upload&quot;.  Die Datei wird im Ordner <code class="no-pad">/DEIN_ADMIN/dbio</code> gespeichert.</p>
+              <p><strong>Hinweis: </strong> Der Name der importierten Datei muss mit dem aktuell ausgewählten Handler verknüpft sein, z.B. wenn der Handler <em>Products</em> ausgewählt ist, muss der Name der hochgeladenen Datei die Form <code class="no-pad">dbio.Products.*.csv</code> haben.</p>
+              <div class="clearBoth"></div>
+            </div>
+            
+            <div id="import-area">
+              <noscript><h3>Importieren/Datei-Aktionsbereich</h3></noscript>
+              <img src="import_area.jpg" alt="DbIo Import/Action Area" title="DbIo Import/Action Area" />
+              <p>Dieser Abschnitt des Ordners <em>DbIo Manager</em> ermöglicht Ihnen die Verwaltung der .csv-Dateien, die sich im Ordner <code class="no-pad">/DEIN_ADMIN/dbio</code> Ihrer Website befinden, sowie der <em>DbIo</em>-generierten .log-Dateien, die sich im Ordner <code class="no-pad">/DEIN_ADMIN/dbio/logs</code> Ihrer Website befinden.</p>
+              <p>Sie können ausgewählte Dateien löschen, indem Sie das (die) zugehörige(n) Kontrollkästchen in der Spalte <b>Löschen?</b> ankreuzen und dann auf die Schaltfläche &quot;Löschen&quot; &mdash klicken; Sie erhalten ein Bestätigungs-Popup, nur um sicherzugehen.</p>
+              <p class="clearBoth">Sie können auch die Dropdown-Auswahl am oberen Rand der Anzeige verwenden, um zusätzliche Aktionen mit der Datei durchzuführen, die über den Auswahlknopf in der Spalte <b>Datei auswählen</b> ausgewählt wurde:</p>
+              <ol>
+                <li><b>Aufteilen</b>. Bewirkt, dass die zugehörige .csv-Datei <em>zerlegt</em> in mehrere (und damit kleinere) Dateien aufgeteilt wird, um deren Download zu ermöglichen.  Nehmen Sie Bezug auf die im Konfigurationsbereich angezeigte <em>Anzahl geteilter Datensätze</em> und ändern Sie dies bei Bedarf; der Wert gibt die Anzahl der Datensätze (d.h. Zeilen in der .csv-Datei) an, die mit jedem &quot;teilen&quot verknüpft werden;.</li>
+                <li><b>Import (vollständig)</b>. Führt dazu, dass die zugehörige .csv-Datei <em>importiert</em> in die Datenbank Ihrer Website wird.  Stellen Sie sicher, dass Sie ein Datenbank-Backup erstellt haben, nur für den Fall, dass etwas schief geht!  Beachten Sie auch, dass ein vollständiger Import <b>nie, niemals</b> mit aktiviertem <em>DbIo's</em> Debugging durchgeführt werden sollte; das wird den Umfang der Verarbeitung, die durchgeführt werden kann, strong reduzieren!</li>
+                <li><b>Importieren (nur Kontrolle)</b>.  Führt dazu, dass die zugehörige .csv-Datei so verarbeitet wird, wie sie importiert werden soll, <em>aber es werden keine Datenbankänderungen durchgeführt</em>.  Sie verwenden diese Aktion zum Beispiel, um Ihre Importdatei auf Fehler (wie ungültige Daten) zu überprüfen, bevor Sie die Datenbank tatsächlich aktualisieren.  Auch diese Aktion wird durch den <em>DbIo's</em> Debug-Modus strong behindert.</li>
+                <li><b>Download</b>. Führt dazu, dass die zugehörige .csv- oder .log-Datei von Ihrer Website auf Ihren Computer heruntergeladen wird.</li>
+              </ol>
+              <p>Sie können die vom <em>DbIo Manager</em> gefundenen Dateien nach Dateiname, Dateigröße oder dem Datum der letzten Änderung sortieren, indem Sie die Pfeil-Links in der Kopfzeile der Dateiliste verwenden.</p>
+              <div class="clearBoth"></div>
+            </div>
+            
+            <div id="dbio_files">
+              <noscript><h3>Speicherorte für DbIo-Dateien</h3></noscript>
+              <p><em>DbIo</em> definiert den Ordner <code class="no-pad">/DEIN_ADMIN/dbio</code> als den Ort, an dem sich Ihre CSV-Dateien ( Komma-separierte-Werte) befinden.  Immer wenn <em>DbIo</em> eine Datendatei ausgibt (exportiert), wird die Datei in diesem Ordner erstellt; alle <code class="no-pad">.csv</code> Dateien <em>, die mit dem aktuell aktiven Handler</em> in diesem Ordner assoziiert sind, werden im &quot;Import/Datei-Aktionsbereich&quot; von <em>DbIo</em> angezeigt.</p>
+              <p>Wenn Sie <em>DbIo's</em> debug mit <em>Konfiguration-&gt;DbIo Manager Settings-&gt;Enable Debug?</em> aktivieren, werden die Protokolldateien im Ordner <code class="no-pad">/DEIN_ADMIN/dbio/logs</code> erstellt.</p>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      <!-- end dbio_manager section -->
+      
+      <!-- start dbio_template section -->
+      <div id="dbio_templates">
+        <noscript><h2>DbIo-Vorlagen verwalten</h2></noscript>
+        <p>Dieser Abschnitt beschreibt die Verwendung des Werkzeugs <em>DbIo-Vorlagen konfigurieren</em>, das durch Klicken auf die Schaltfläche &quot;Vorlagen verwalten&quot; aus <b><<i>Werkzeuge-&gt;Database I/O Manager</i><</b> verfügbar ist, wenn der aktuell ausgewählte Handler den Export <em>Vorlage</em> unterstützt.</p>
+        <p>Die Templating-Unterstützung von <em>DbIo</em> ermöglicht es Ihnen, eine Teilmenge der vom aktuell ausgewählten Handler bereitgestellten Felder für einen kundenspezifischen Export und anschließenden Import auszuwählen.  Es gibt eine Reihe vordefinierter Vorlagen für den <em>Produkte</em>-Handler, die Ihnen eine Vorstellung davon vermitteln, was Sie mit dieser Funktion tun können.</p>
+        <div class="tab-container" id="inner-container4">
+          <ul class="etabs">
+            <li class="tab"><a href="#template_listing">Anzeige von Listen</a></li>
+            <li class="tab"><a href="#template_edit">Eine Vorlage erstellen oder bearbeiten</a></li>
+            <li class="tab"><a href="#template_copy">Kopieren einer Vorlage</a></li>
+          </ul>
+          <div class="panel-container">
+            
+            <div id="template_listing">
+              <noscript><h3>Anzeige von Listen</h3></noscript>
+              <p>Beim ersten Einstieg in den <em>DbIo</em> Template-Manager werden die Vorlagen für den aktuell ausgewählten Handler angezeigt. Zu jedem Handler werden die folgenden Informationen angezeigt:</p>
+              <ul>
+                <li><strong>Umfang</strong Gibt an, ob die Vorlage ><em>öffentlich</em> &mdash; verfügbar für alle autorisierten Admins &mdash; oder <em>Privat</em> &mdash; verfügbar nur für die Verwendung durch den aktuell angemeldeten Admin.</li>
+                <li><strong>Vorlagenname</strong>. Enthält den &quot;Namen&quot; der Vorlage. der Wert darf nur alphanumerische Zeichen und Unterstriche (_) enthalten, da der Wert verwendet wird, um einen Teil des Namens einer exportierten CSV-Datei zu bilden, wenn der Export mit der Vorlage durchgeführt wird.</li>
+                <li><strong>Beschreibung</strong>.  Enthält einen Text-Blob (kein HTML erlaubt), den Sie verwenden können, um sich an den Zweck dieser Vorlage zu erinnern.  Wenn Sie die Schablone im Export-Abschnitt von <em>Database I/O Manager</em> auswählen, wird diese Beschreibung angezeigt.</li>
+                <li><strong>Zuletzt aktualisiert von</strong>.  Gibt den Namen und die ID des Administrators an, der die Vorlage zuletzt aktualisiert hat; der Wert wird bei allen vordefinierten Vorlagen als <em>System</em> angezeigt.</li>
+                <li><strong>Datum der letzten Aktualisierung</strong>. Gibt das Datum und die Uhrzeit der letzten Aktualisierung der Vorlagen an.</li>
+              </ul>
+              <img class="wide" src="template_listing.jpg" alt="DbIo Template Listing" title="DbIo Template Listing" />
+              <div class="clearBoth"></div>
+            </div>
+            
+            <div id="template_edit">
+              <noscript><h3>Eine Vorlage erstellen oder bearbeiten</h3></noscript>
+              <p>Wenn Sie eine DbIo-Vorlage erstellen oder bearbeiten, wird eine Seite ähnlich der folgenden angezeigt.  Innerhalb dieser Seite identifizieren Sie den Umfang, den Namen und die Beschreibung der Vorlage und verwenden dann den Block <strong>Vorlagenfelder wählen</strong>, um die Felder auszuwählen, die in einen vorlagenbasierten Export einbezogen werden sollen, sowie die Reihenfolge, in der diese Felder in der .CSV-Ausgabedatei erscheinen sollen.  Einige Merkmale dieses Abschnitts sind:</p>
+              <ol>
+                <li>Jede der Dropdown-Listen <em>Mehrfachauswahl</em> kann vertikal gedehnt werden, so dass Sie alle zugehörigen Felder sehen können.</li>
+                <li>Wenn der Handler eine Importaktion auf dem generierten CSV unterstützt, kann es einige &quot;Schlüssel&quot;-Felder geben, die erforderlich sind; diese sind in den rechtsseitigen Block vorausgefüllt und sind Pflichtfelder.</li>
+                <li>Verwenden Sie die Links- und Rechts-Pfeile, um Felder zwischen den Blöcken auf der linken Seite (alle verfügbaren Felder) und auf der rechten Seite (Ihre benutzerdefinierten Felder) zu verschieben.</li>
+                <li>Verwenden Sie die Auf- und Abwärtspfeile, um die Felder innerhalb des Blocks der benutzerdefinierten Felder anzuordnen.</li>
+              </ol>
+              <img class="wide" src="new_template.jpg" alt="DbIo Create or Edit a Template" title="DbIo Create or Edit a Template" />
+            </div>
+             
+            <div id="template_copy">
+              <noscript><h3>Kopieren einer Vorlage</h3></noscript>
+              <p>Wenn Sie eine vorhandene Vorlage <em>kopieren</em>, können Sie den Umfang und/oder den Namen der Vorlage ändern, aber der von Ihnen gewählte Name muss innerhalb des Umfangs eindeutig sein.  Diese Funktion ermöglicht es Ihnen, eine private Kopie einer öffentlichen Vorlage zu erstellen und diese für Ihre Verwendung weiter anzupassen.  Sie können auch eine öffentliche Kopie einer privaten Vorlage erstellen, die alle autorisierten Admins verwenden können.</p>
+              <img class="wide" src="copy_template.jpg" alt="DbIo Copy a Template" title="DbIo Copy a Template" />
+              <div class="clearBoth"></div>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      <!-- end dbio_templates section -->
+      
+      <!-- start history section -->
+      <div id="history">
+        <noscript><h3>Versions-Historie</h3></noscript>
+        <p>Sie können die Details dieser Änderungen im <a href="https://github.com/lat9/dbio/issues" target="_blank">Original GitHub-Repository des Plugins einsehen.</a></p>
+        <p>Änderungen in der deutschen Version des Plugins im entsprechenden Repository der deutschen Zen Cart Version <a href="https://github.com/zencartpro/157-modul-dbio-manager" target="_blank">hier</a></p>
+        <ul>
+          <li>v1.6.8 2022-07-27 (lat9/torvista):<ul>
+            <li>BUGFIX: PHP 8.1+ compatibility, removing use of 'auto_detect_line_endings'.</li>
+            <li>BUGFIX: Use 'zen_cfg_read_only' to prevent the plugin's version settings from being reset.</li>
+            <li>The following files were changed or <span class="added">added</span>:<ol>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIo.php</li>
+              
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.6.7, 2022-02-09 (lat9/torvista):<ul>
+            <li>BUGFIX: Adding 'longtext' as a valid MySQL character type.</li>
+            <li>BUGFIX: Correcting length of <code>dbio_reports::handler_name</code> for utf8mb4 database collations.</li>
+            <li>BUGFIX: Correcting PHP notice on unknown manufacturers' name during 'check' operation.</li>
+            <li>CHANGE: Update language files to use HTML5 <b>&lt;br&gt;</b>'s.</li>
+            <li>CHANGE: Products' category-filter now returns products in all sub-categories of selected categories.</li>
+            <li>BUGFIX: Disallow <code>DbIoProductsHandler</code> 'ADD' for missing/duplicate (if configured) model numbers.</li>
+            <li>BUGFIX: <code>DbIoProductsHandler</code>, correcting potential creation of category with an 'empty' name.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoManufacturersHandler.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoProductsAttribsBasicHandler.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoProductsAttribsRawHandler.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoProductsDiscountQuantityHandler.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoSpecialsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoStatsHandler.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.6.6, 2021-03-28:<ul>
+            <li>INTROP: PHP 8.1, modify usage of <code>$GLOBALS</code>.</li>
+            <li>BUGFIX: Correcting PHP Fatal error (Uncaught  ArgumentCountError) for DbIoProductsHandler.</li>
+            <li>CHANGE: Add 'v_products_link' (storefront link) to the DbIoProductsHandler.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsAttribsRawHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsDiscountQuantityHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsOptionsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsOptionsValuesHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoSpecialsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoStatsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.6.5, 2021-01-22:<ul>
+            <li>BUGFIX: Properly handle 'enum' type database fields on import.</li>
+            <li>BUGFIX: Correctly handle 'nullable' fields on import.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+         <ul>
+          <li>v1.6.4, 2020-10-04:<ul>
+            <li>deutsche Übersetzung der Anleitung und der englischen Sprachdateien durch klartexter</li>
+            <li>multilinguale Installation des Konfigurationsmenüs</li>
+            <li>Update des Konfigurationsmenüs mt deutschen Texten für bereits installierte 1.6.3 Versionen</li>
+            <li>Add message for multiple v_dbio_command columns in import </li>
+            <li>Correct invalid dates' detection </li>
+            <li>Products import, now configurable to require an ADD command for insert</li>
+            <li>Enable a product to be unlinked from a category other than its master_categories_id</li>
+             <li>The following files were changed or added:
+               <ol>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/dbio_messages.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio_manager.php</li>
+              <li>Neue Sprachdateien für deutsch /YOUR_ADMIN/includes/languages/german/...</li>
+               </ol>
+            </li>
+          </ul></li>
+       
+          <li>v1.6.3, 2020-06-28:<ul>
+            <li>BUGFIX: Correct &quot;ProductsAttribsRaw&quot; full-import MySQL error when inserting a new attribute.</li>
+            <li>BUGFIX: Update needed for Zen Cart 1.5.7 interoperation.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsAttribsRawHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.6.2, 2020-06-07:<ul>
+            <li>BUGFIX: Correct &quot;Products&quot; export creating multiple records for multi-lingual stores.</li>
+            <li>BUGFIX: Correct &quot;ProductsAttribsRaw&quot; check-only import MySQL error when inserting a new download attribute.</li>
+            <li>BUGFIX: Correct MySQL error when importing using &quot;ProductsAttribsBasic&quot; with option-values containing single-quotes.</li>
+            <li>BUGFIX: Correct PHP deprecation notice on 'curly-brace' usage; thanks @torvista!</li>
+            <li>The following files were changed or <span class="added">added</span>:<ol>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsAttribsBasicHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsAttribsRawHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/Encoding.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.6.1, 2020-02-12:<ul>
+            <li>BUGFIX: Hide unwanted (and confusing) link-title on <em>View Import Details</em> pop-up.</li>
+            <li>BUGFIX: Correct MySQL error on initial install introduced in v1.6.0.</li>
+            <li>The following files were changed or <span class="added">added</span>:<ol>
+              <li>/YOUR_ADMIN/includes/javascript/dbio/colorbox.css</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.6.0, 2020-02-08:<ul>
+            <li>BUGFIX: Update <em>ProductsHandler</em> to include the products' meta-tags' language-based settings.</li>
+            <li>BUGFIX: <em>ProductsAttribsRawHandler</em><ol type="a">
+                <li>Ensure the export properly outputs possibly not present fields.</li>
+                <li>Correct management of the (possibly not present) 'products_attributes_downloads' table's fields.</li>
+            </ol></li>
+            <li>BUGFIX: Correct <em>Manufacturers</em> only exports default language for multi-lingual stores.</li>
+            <li>BUGFIX: Correct PHP notice generated if an export completes unsuccessfully, e.g. generating no records.</li>
+            <li>CHANGE: Enhance various handlers' on-screen instructions.</li>
+            <li>BUGFIX: Correctly export (and import) a product's language-specific meta-tags' fields.</li>
+            <li>BUGFIX: Ensure that minimum information is present to create a new product.</li>
+            <li>BUGFIX: Correct PHP Notice issued when copying a customized template.</li>
+            <li>BUGFIX: Correct insertion of customized fields, affects <em>Orders</em> and <em>Products</em> handlers.</li>
+            <li>CHANGE: Enable 'automatic' download of exports.</li>
+            <li>BUGFIX: Correct database tables' integer fields' defaults (they're now numeric values).</li>
+            <li>CHANGE: Update the <em>Stats</em> handler to empty the <code>dbio_stats</code> table on an export.</li>
+            <li>CHANGE: Include a handler (<em>Specials</em>) to import/export fields from the <code>specials</code> table.</li>
+            <li>The following files were changed or <span class="added">added</span>:<ol>
+              <li>/YOUR_ADMIN/dbio_customize.php</li>
+              <li>/YOUR_ADMIN/dbio_manager.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIo.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoManufacturersHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsAttribsRawHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li><span class="added">/YOUR_ADMIN/includes/classes/dbio/DbIoSpecialsHandler.php</span></li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoStatsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio_customize.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio_manager.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoManufacturersHandler.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoProductsAttribsBasicHandler.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoProductsAttribsRawHandler.php</li>
+              <li><span class="added">/YOUR_ADMIN/includes/languages/english/dbio/DbIoSpecialsHandler.php</span></li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoStatsHandler.php</li>
+            </ol></li>
+            </ol></li>
+          </ul></li>
+          <li>v1.5.7, 2019-09-22:<ul>
+            <li>BUGFIX: Correct <em>ProductsAttribsRawHandler</em> PHP error on attribute addition with download.</li>
+            <li>CHANGE: Add jQuery to enable the multi-select dropdowns to be resized vertically.</li>
+            <li>CHANGE: Update <em>ProductsAttribsRawHandler</em> to also export each product's manufacturer-name.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/dbio_manager.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsAttribsRawHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.5.6, 2019-08-10:<ul>
+            <li>BUGFIX: &quot;Split&quot; processing improperly encloses lines with blanks.</li>
+            <li>BUGFIX: Correct PHP Notice when blank lines are found in an import.</li>
+            <li>CHANGE: Add buttons to select/unselect all files for the delete action.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/dbio_manager.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio_manager.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.5.5, 2019-07-24:<ul>
+            <li>BUGFIX: &quot;Split&quot; processing creates duplicate header lines on first &quot;part&quot;.</li>
+            <li>BUGFIX: Don't log generated SQL when performing a full import &mdash; performance issue for large imports.</li>
+            <li>CHANGE: Disregard blank lines in an imported .csv file.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/dbio_manager.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.5.4, 2019-04-30:<ul>
+            <li>BUGFIX: Correct various PHP Notices.</li>
+            <li>BUGFIX: <em>ProductsOptions</em> and <em>ProductsOptionsValues</em> handlers won't import when key is 0.</li>
+            <li>BUGFIX: <em>ProductsAttribsBasic</em> throws MySQL/strict error due to now-invalid <code>GROUP BY</code> clause.</li>
+            <li>CHANGE: Enable <em>ProductsAttribsRaw</em> to support a <code>v_dbio_command</code> value of <b>REMOVE</b>.</li>
+            <li>BUGFIX: <em>ProductsDiscountQuantity</em> throws MySQL/strict error due to now-invalid <code>GROUP BY</code> clause.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIo.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbioProductsAttribsBasicHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbioProductsAttribsRawHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsOptionsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsOptionsValuesHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsDiscountQuantityHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoProductsAttribsRawHandler.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.5.3, 2019-04-22:<ul>
+            <li>BUGFIX: PHP error thrown for the <em>Products</em> handler, when creating a category.</li>
+            <li>BUGFIX: PHP errors and/or notices thrown for the <em>Products</em> handler, when forcing a product to be created via DbIo command.</li>
+            <li>BUGFIX: Incorrect report of invalid <em>integer</em> values in some configurations.</li>
+            <li>The following files were changed:<ol>
+                <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+                <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+                <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.5.2, 2019-03-05:<ul>
+            <li>BUGFIX: <code>DB_CHARSET</code> of <code>utf8mb4</code> not recognized as valid <em>utf8</em> variant.</li>
+            <li>BUGFIX: Properly recognize a database field type of <code>double</code>.</li>
+            <li>BUGFIX: Negative integers, e.g. -30, should be accepted as valid integer values.</li>
+            <li>The following files were changed:<ol>
+                <li>/YOUR_ADMIN/dbio_customize.php</li>
+                <li>/YOUR_ADMIN/dbio_manager.php</li>
+                <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+                <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.5.1, 2018-09-13:<ul>
+            <li>BUGFIX: <code>Products</code> export columns are &quot;off&quot; for its specially-handled fields, due to <code>v_dbio_command</code> column inserts.</li>
+            <li>The following files were changed:<ol>
+                <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+                <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.5.0, 2018-07-21:<ul>
+            <li>CHANGE: Add the <code>ProductsDiscountQuantity</code> handler.</li>
+            <li>BUGFIX: <code>Products</code> export results in error when imported.</li>
+            <li>CHANGE: Include each customer's default-address information for a <code>Customers</code> export.</li>
+            <li>BUGFIX: Correct <code>Products</code> customized language fields' ordering.</li>
+            <li>The following files were changed or <span class="added">added</span>:<ol>
+                <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+                <li>/YOUR_ADMIN/includes/classes/dbio/DbIoCustomersHandler.php</li>
+                <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+                <li><span class="added">/YOUR_ADMIN/includes/classes/dbio/DbIoProductsDiscountQuantityHandler.php</span></li>
+                <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+                <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoCustomersHandler.php</li>
+                <li><span class="added">/YOUR_ADMIN/includes/languages/english/dbio/DbIoProductsDiscountQuantityHandler.php</span></li>
+            </ol></li>
+          </ul></li>
+          <li>v1.4.1, 2018-04-05:<ul>
+            <li>BUGFIX: Zen Cart admin versions less than 1.5.5<b>a</b> don't auto-load jQuery.</li>
+            <li>BUGFIX: Customized <code>Products</code> export returns <em>all</em> fields of the <code>products_description</code> table.</li>
+            <li>CHANGE: Allow exports to output multiple lines per request.</li>
+            <li>BUGFIX: Enable database fields that are <em>nullable</em> to be set to <code>NULL</code>.</li>
+            <li>BUGFIX: Enable plugin operations when <code>php-mbstring</code> extension is not loaded.</li>
+            <li>The following files were changed or <span class="added">added</span>:<ol>
+              <li>/YOUR_ADMIN/dbio_customize.php</li>
+              <li>/YOUR_ADMIN/dbio_manager.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIo.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsAttribsBasicHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li><span class="added">/YOUR_ADMIN/includes/functions/dbio_string_functions.php</span></li>
+              <li><span class="added">/YOUR_ADMIN/includes/functions/dbio_mb_string_functions.php</span></li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.4.0, 2017-11-28:<ul>
+            <li>CHANGE: Update the &quot;Products&quot; handler to allow a product to be unconditionally created.</li>
+            <li>The following files were changed:<ol>
+            </ol></li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+          </ul></li>
+          <li>v1.3.1, 2017-10-04:<ul>
+            <li>BUGFIX: Properly detect missing/read-only input-output directories.</li>
+            <li>BUGFIX: (Products) Import with duplicate records results in debug-log.</li>
+            <li>BUGFIX: (Products) Import/update of a product doesn't record updated master-categories id.</li>
+            <li>BUGFIX: (Products) Exports with re-organized manufacturer's name, tax-class id or categories name have mixed data in columns; for (Orders), the same applies for the orders-status name.</li>
+            <li>BUGFIX: Export error not displayed to admin user</li>
+            <li>The following files were changed:<ol>
+            </ol></li>
+              <li>/YOUR_ADMIN/dbio_manager.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIo.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoOrdersHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/dbio_messages.php</li>
+          </ul></li>
+          <li>v1.3.0, 2017-04-25:<ul>
+            <li>CHANGE: Display <em>all</em> DbIo configuration settings on the main tool's page.</li>
+            <li>BUGFIX: Manage the product's date-added/last-modified fields on an import.</li>
+            <li>BUGFIX: Correct final v1.2.0 initialization fails for &quot;early adopters&quot;.</li>
+            <li>BUGFIX: Update the <em>Products</em> handler to optionally create any associated categories.</li>
+            <li>CHANGE: Add a control to enable a handler to totally control the import sequencing.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/dbio_manager.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio_manager.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.2.1, 2017-03-01:<ul>
+            <li>BUGFIX: Alert admin-user when &quot;php-mbstring&quot; extension is not installed.</li>
+            <li>BUGFIX: Add backticks around database field names.</li>
+            <li>CHANGE: Enable fixed-field handlers to include special-handling fields.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/dbio_manager.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIo.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/dbio_messages.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.2.0, 2017-02-06:<ul>
+            <li>BUGFIX: Truncate character fields to their database-defined maximum length prior to import.</li>
+            <li>CHANGE: Add an handler to support import/export of the manufacturers' information.</li>
+            <li>CHANGE: Enable download and removal of <em>DbIo</em> log files.</li>
+            <li>CHANGE: Reduce creation of &quot;nuisance&quot; DbIo log files.</li>
+            <li>CHANGE: Use a text-link instead of icon to indicate that import statistics are available.</li>
+            <li>CHANGE: Enable exported report customizations.</li>
+            <li>CHANGE: Restructure admin tool's user interface.</li>
+            <li>CHANGE: Conditionally present a handler's filters for use in the database-export processing.</li>
+            <li>BUGFIX: Maintain current file selection.</li>
+            <li>The following files were changed, <span class="added">added</span> or <span class="removed">removed</span>:<ol>
+              <li>/docs/dbio/uninstall/uninstall_dbio.sql</li>
+              <li><span class="added">/YOUR_ADMIN/dbio_customize.php</span></li>
+              <li>/YOUR_ADMIN/dbio_manager.php</li>
+              <li><span class="removed">/YOUR_ADMIN/images/icons/dbio_information.png</span></li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIo.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li><span class="added">/YOUR_ADMIN/classes/dbio/DbIoManufacturersHandler.php</span></li>
+              <li><span class="added">/YOUR_ADMIN/includes/classes/dbio/DbIoOrdersBase.php</span></li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoOrdersHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoOrdersProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/extra_datafiles/dbio_file_database_names_admin.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+              <li><span class="added">/YOUR_ADMIN/includes/languages/english/dbio_customize.php</span></li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio_manager.php</li>
+              <li><span class="added">/YOUR_ADMIN/includes/languages/english/dbio/DbIoManufacturersHandler.php</span></li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoOrdersHandler.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoOrdersProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/extra_definitions/dbio_admin_extra_definitions.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.1.1, 2017-01-04:<ul>
+            <li>BUGFIX: <em>OrdersProducts</em> handler generates database error when filtered.</li>
+            <li>BUGFIX: <em>OrdersProducts</em> handler doesn't encode data on export.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoOrdersProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.1.0, 2016-12-19:<ul>
+            <li>BUGFIX: Correct PHP Notices</li>
+            <li>CHANGE: Add class-based support for customizable exports; not yet implemented at the <em>Database I/O Manager</em> level.</li>
+            <li>CHANGE: Add support for the <code class="no-pad">v_dbio_command</code> column, allowing handlers (e.g. <em>Products</em>) to accept commands (like REMOVE).</li>
+            <li>CHANGE: Split handlers' export-filters' configuration from handlers' base configuration.</li>
+            <li>CHANGE: Allow handlers to identify a minimum version of the base <code class="no-pad">DbIoHandler</code> class.</li>
+            <li>CHANGE: Allow handlers to identify &quot;alternate&quot; keys; the <code class="no-pad">DbIoProductsHandler</code> has been updated to enable an import based on either products_id or products_model.</li>
+            <li>BUGFIX: Cease import processing fully if an initialization error is detected.</li>
+            <li>BUGFIX: Disallow 'incomplete' records, i.e. fewer columns than the header.</li>
+            <li>BUGFIX: Fixed-header import misses 'special import' fields.</li>
+            <li>The following files were changed:<ol>
+              <li>/YOUR_ADMIN/dbio_manager.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIo.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoOrdersHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/dbio_messages.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.0.1, 2016-10-24:<ul>
+            <li>CHANGE: Enable a handler to perform some post-processing for the record-set just imported.</li>
+            <li>CHANGE: Clarify some of the handlers' instructions.</li>
+            <li>BUGFIX: Missing function importGetFieldValue.</li>
+            <li>BUGFIX: Unwanted HTML included in CSV-download in some configurations.</li>
+            <li>BUGFIX: Missing &quot;Customers&quot; handler's language file.</li>
+            <li>BUGFIX: Only default language exported by &quot;Products&quot; handler on multi-lingual stores.</li>
+            <li>BUGFIX: v_categories_name field not properly encoded by the &quot;Products&quot; export.</li>
+            <li>BUGFIX: Empty dates should be allowed when a date/datetime field is <em>nullable</em>.</li>
+            <li>CHANGE: Allow a handler to be conditionally enabled.</li>
+            <li>The following files were changed/<span class="added">added</span>:<ol>
+              <li>/YOUR_ADMIN/dbio_manager.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIo.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoHandler.php</li>
+              <li>/YOUR_ADMIN/includes/classes/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/init_includes/init_dbio_admin.php</li>
+              <li><span class="added">/YOUR_ADMIN/includes/languages/english/dbio/DbIoCustomersHandler.php</span></li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoProductsHandler.php</li>
+              <li>/YOUR_ADMIN/includes/languages/english/dbio/DbIoProductsAttribsBasicHandler.php</li>
+            </ol></li>
+          </ul></li>
+          <li>v1.0.0, 2016-07-01, Initial release.</li>
+        </ul>
+      </div>
+      <!-- end history section -->
+      
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    $( '#outer-container, #inner-container1, #inner-container2, #inner-container3, #inner-container4' ).easytabs();
+    
+    $( '.side-link' ).click( function() {
+        window.location.hash = $(this).attr( 'href' );
+        location.reload();
+    });
+  </script>
+</body>
+</html>
