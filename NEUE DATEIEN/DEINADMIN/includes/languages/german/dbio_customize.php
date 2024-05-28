@@ -1,7 +1,10 @@
 <?php
 // -----
-// Teil des DataBase I/O Manager (aka DbIo) Plugins, erstellt von Cindy Merkin (cindy@vinosdefrutastropicales.com)
-// Copyright (c) 2017-2020, Vinos de Frutas Tropicales.
+// Part of the DataBase Import/Export (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
+//
+// Last updated: DbIo v2.2.0
+//
+// Copyright (c) 2017-2023, Vinos de Frutas Tropicales.
 //
 define('HEADING_TITLE', 'DbIo%s-Vorlagen konfigurieren');
 
@@ -43,8 +46,7 @@ define('BUTTON_REMOVE', 'Entfernen');
 define('BUTTON_REMOVE_TITLE', 'Klicken Sie hier, um diese Vorlage dauerhaft zu entfernen');
 define('BUTTON_NEW', 'Neue Vorlage');
 define('BUTTON_NEW_TITLE', 'Klicken Sie hier, um eine neue DbIo-Vorlage für den aktuellen Handler zu erstellen');
-define('BUTTON_EDIT', 'Bearbeiten');
-define('BUTTON_EDIT_TITLE', 'Klicken Sie hier, um diese DbIo-Vorlage zu bearbeiten');
+
 define('BUTTON_INSERT', 'Einfügen');
 define('BUTTON_INSERT_TITLE', 'Klicken Sie hier, um eine neue DbIo-Vorlage zu erstellen');
 define('BUTTON_UPDATE', 'Aktualisieren');

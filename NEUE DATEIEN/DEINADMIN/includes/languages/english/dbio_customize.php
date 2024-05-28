@@ -1,7 +1,10 @@
 <?php
 // -----
 // Part of the DataBase Import/Export (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
-// Copyright (c) 2017-2020, Vinos de Frutas Tropicales.
+//
+// Last updated: DbIo v2.2.0
+//
+// Copyright (c) 2017-2023, Vinos de Frutas Tropicales.
 //
 define('HEADING_TITLE', 'Configure DbIo%s Templates');
 
@@ -43,8 +46,7 @@ define('BUTTON_REMOVE', 'Remove');
 define('BUTTON_REMOVE_TITLE', 'Click here to permanently remove this template');
 define('BUTTON_NEW', 'New Template');
 define('BUTTON_NEW_TITLE', 'Click here to create a new DbIo template for the current handler');
-define('BUTTON_EDIT', 'Edit');
-define('BUTTON_EDIT_TITLE', 'Click here to edit this DbIo template');
+
 define('BUTTON_INSERT', 'Insert');
 define('BUTTON_INSERT_TITLE', 'Click here to create a new DbIo template');
 define('BUTTON_UPDATE', 'Update');
@@ -54,7 +56,7 @@ define('BUTTON_RETURN_TITLE', 'Click here to return to the DbIo Manager\'s main 
 define('BUTTON_CANCEL', 'Cancel');
 define('BUTTON_CANCEL_TITLE', 'Click here to cancel the current action');
 
-define('INSTRUCTIONS_MAIN', 
+define('INSTRUCTIONS_MAIN',
     'Use this page to customize an export template for the DbIo\'s <em>%1$s</em> handler.  You can choose a subset of the fields supported by this handler and also customize the order in which those fields are exported into their associated .csv-file columns.' .
     '<br><br>' .
     'A template\'s <em>scope</em> can be either <b>' . TEXT_SCOPE_PUBLIC . '</b>, available for all admin users, or <b>' . TEXT_SCOPE_PRIVATE . '</b>, available only for your use.  Its <em>name</em> will form a portion of an exported csv-file\'s name if the template is used to customize an export action, e.g. <code>dbio.%1$s.template_name.datetime_string</code>.  The <em>description</em> that you provide is displayed on the main <strong>Database I/O Manager</strong> screen when the template is selected, giving you some confirmation of the template\'s features.'
