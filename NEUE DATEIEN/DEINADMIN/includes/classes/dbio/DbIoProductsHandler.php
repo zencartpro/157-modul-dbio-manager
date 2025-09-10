@@ -1,9 +1,9 @@
 <?php
 // -----
 // Part of the DataBase Import/Export (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
-// Copyright (c) 2015-2023, Vinos de Frutas Tropicales.
+// Copyright (c) 2015-2025, Vinos de Frutas Tropicales.
 //
-// Last updated: DbIo v2.0.0.
+// Last updated: DbIo v2.1.0
 //
 if (!defined('IS_ADMIN_FLAG')) {
     exit('Illegal access');
@@ -12,22 +12,23 @@ if (!defined('IS_ADMIN_FLAG')) {
 // -----
 // This DbIo class handles the customizations required for a basic Zen Cart product import/export.
 //
-class DbIoProductsHandler extends DbIoHandler 
+class DbIoProductsHandler extends DbIoHandler
 {
     const DBIO_COMMAND_ADD    = 'ADD';      //-Forces the current product to be added, even if the model already exists.
-    const DBIO_COMMAND_UNLINK = 'UNLINK';   //-Unlinks the product from the specified v_categories_name, so long as it's not the current master_category_id.
+    const DBIO_COMMAND_LINK   = 'LINK';     //-Links the product to the category specified by v_categories_name
+    const DBIO_COMMAND_MOVE   = 'MOVE';     //-Moves the product to the category specified by v_categories_name
+    const DBIO_COMMAND_UNLINK = 'UNLINK';   //-Unlinks the product from the specified v_categories_name, so long as it's not the current master_categories_id.
 
-    protected
-        $categories_name_found,
-        $import_meta_tags_post_process,
-        $import_can_insert;
+    protected bool $categories_name_found;
+    protected bool $import_meta_tags_post_process;
+    protected bool $import_can_insert;
 
     public static function getHandlerInformation()
     {
         global $db;
         DbIoHandler::loadHandlerMessageFile('Products'); 
         return [
-            'version' => '2.0.0',
+            'version' => '2.1.0',
             'handler_version' => '1.6.0',
             'include_header' => true,
             'export_only' => false,
@@ -153,7 +154,7 @@ class DbIoProductsHandler extends DbIoHandler
                           LIMIT 1";
                 }
             } else {
-                $this->saved_data['products_description_sql'] = 
+                $this->saved_data['products_description_sql'] =
                     "SELECT *
                        FROM " . TABLE_PRODUCTS_DESCRIPTION . "
                       WHERE products_id = %u
@@ -161,7 +162,7 @@ class DbIoProductsHandler extends DbIoHandler
                       LIMIT 1";
                 $this->saved_data['products_description_last_field'] = $this->getTableLastFieldName(TABLE_PRODUCTS_DESCRIPTION);
                 
-                $this->saved_data['products_metatags_sql'] = 
+                $this->saved_data['products_metatags_sql'] =
                     "SELECT *
                        FROM " . TABLE_META_TAGS_PRODUCTS_DESCRIPTION . "
                       WHERE products_id = %u
@@ -372,7 +373,7 @@ class DbIoProductsHandler extends DbIoHandler
                     if (!($this->config['additional_headers']['v_tax_class_title'] & self::DBIO_FLAG_NO_EXPORT)) {
                         $tax_class_info = $db->Execute(
                             "SELECT tax_class_title 
-                               FROM " . TABLE_TAX_CLASS . " 
+                               FROM " . TABLE_TAX_CLASS . "
                               WHERE tax_class_id = $tax_class_id 
                               LIMIT 1"
                         );
@@ -391,9 +392,9 @@ class DbIoProductsHandler extends DbIoHandler
                         foreach ($cPath_array as $next_category_id) {
                             $category_info = $db->Execute(
                                 "SELECT categories_name 
-                                   FROM " . TABLE_CATEGORIES_DESCRIPTION . " 
-                                  WHERE categories_id = $next_category_id 
-                                    AND language_id = $default_language_id 
+                                   FROM " . TABLE_CATEGORIES_DESCRIPTION . "
+                                  WHERE categories_id = $next_category_id
+                                    AND language_id = $default_language_id
                                   LIMIT 1"
                             );
                             $categories_name .= (($category_info->EOF) ? self::DBIO_UNKNOWN_VALUE : $category_info->fields['categories_name']) . '^';
@@ -433,8 +434,7 @@ class DbIoProductsHandler extends DbIoHandler
     public function exportGetSql($sql_limit = '')
     {
         if (!isset($this->export_language) || !isset($this->select_clause)) {
-            trigger_error('Export aborted: DbIo export sequence error; not previously initialized.', E_USER_ERROR);
-            exit();
+            dbioLogError('Export aborted: DbIo export sequence error; not previously initialized.');
         }
 
         $language_code = ($this->export_language === 'all') ? $this->first_language_code : $this->export_language;
@@ -476,7 +476,7 @@ class DbIoProductsHandler extends DbIoHandler
     // to perform the 'clean-up' to keep that table's records 'in sync' with the main product.
     //
     // The class variable categories_name_found, on exit, indicates whether/not the v_categories_name column
-    // is present.  This value is used by importHandleDbIoCommand's processing of an 'UNLINK' command.
+    // is present.  This value is used by importHandleDbIoCommand's processing of 'UNLINK', 'LINK' or 'MOVE' commands.
     //
     protected function importFinalizeHeader()
     {
@@ -731,6 +731,89 @@ class DbIoProductsHandler extends DbIoHandler
                 break;
 
             // -----
+            // LINK: Links the product to the category associated with the v_category_name
+            // so long as:
+            //
+            // 1) The category exists.
+            // 2) The category doesn't have sub-categories.
+            //
+            case self::DBIO_COMMAND_LINK:
+                if ($this->import_is_insert === true) {
+                    $this->debugMessage("Product not linked at line #" . $this->stats['record_count'] . "; product does not exist.", self::DBIO_ERROR);
+                    break;
+                }
+                if ($this->categories_name_found === false) {
+                    $this->debugMessage("Product not linked at line #" . $this->stats['record_count'] . "; no 'v_categories_name' column present.", self::DBIO_ERROR);
+                    break;
+                }
+
+                $category_id = $this->getCategoriesIdFromName($data, 'Product not linked');
+                if ($category_id === false) {
+                    break;
+                }
+
+                if (zen_has_category_subcategories($category_id) === true) {
+                    $this->debugMessage("Product not linked at line #" . $this->stats['record_count'] . "; category_id #$category_id has sub-categories.", self::DBIO_ERROR);
+                    break;
+                }
+
+                $continue_line_import = true;
+                $this->debugMessage("Linking the product at line #" . $this->stats['record_count'] . " to category #$category_id.", self::DBIO_INFORMATIONAL);
+                if ($this->operation !== 'check') {
+                    $products_id = (int)$this->importGetFieldValue('products_id', $data);
+                    zen_link_product_to_category($products_id, $category_id);
+                }
+                break;
+
+            // -----
+            // MOVE: Changes the product's master_categories_id to the category associated with the v_category_name
+            // so long as:
+            //
+            // 1) The category exists.
+            // 2) The category doesn't have sub-categories.
+            //
+            case self::DBIO_COMMAND_MOVE:
+                if ($this->import_is_insert === true) {
+                    $this->debugMessage("Product master-categories-id unchanged at line #" . $this->stats['record_count'] . "; product does not exist.", self::DBIO_ERROR);
+                    break;
+                }
+                if ($this->categories_name_found === false) {
+                    $this->debugMessage("Product master-categories-id unchanged at line #" . $this->stats['record_count'] . "; no 'v_categories_name' column present.", self::DBIO_ERROR);
+                    break;
+                }
+
+                $category_id = $this->getCategoriesIdFromName($data, 'Product master-categories-id unchanged');
+                if ($category_id === false) {
+                    break;
+                }
+
+                if (zen_has_category_subcategories($category_id) === true) {
+                    $this->debugMessage("Product master-categories-id unchanged at line #" . $this->stats['record_count'] . "; category_id #$category_id has sub-categories.", self::DBIO_ERROR);
+                    break;
+                }
+
+                $continue_line_import = true;
+                $this->debugMessage("Changing product's master_categories_id at line #" . $this->stats['record_count'] . " to category #$category_id.", self::DBIO_INFORMATIONAL);
+                if ($this->operation !== 'check') {
+                    $products_id = (int)$this->importGetFieldValue('products_id', $data);
+                    $current_master_category = zen_get_products_category_id($products_id);
+                    if ($current_master_category == $category_id) {
+                        break;
+                    }
+                    zen_unlink_product_from_category($products_id, $current_master_category);
+
+                    $move_sql =
+                        "UPDATE " . TABLE_PRODUCTS . "
+                            SET master_categories_id = $category_id
+                          WHERE products_id = :key_value0:
+                          LIMIT 1";
+                    $move_sql = $this->importBindKeyValues($data, $move_sql);
+                    $db->Execute($move_sql);
+                    zen_link_product_to_category($products_id, $category_id);
+                }
+                break;
+
+            // -----
             // UNLINK: Unlinks a product from the specified category-tree.  The product and the specified category must both
             // exist and the category must not be the product's master_category_id.  No additional CSV-record processing required.
             //
@@ -743,28 +826,9 @@ class DbIoProductsHandler extends DbIoHandler
                     $this->debugMessage("Product not unlinked at line #" . $this->stats['record_count'] . "; no 'v_categories_name' column present.", self::DBIO_ERROR);
                     break;
                 }
-                $parent_category = 0;
-                $categories_name_ok = true;
-                $language_id = $this->languages[DEFAULT_LANGUAGE];
-                $categories = explode('^', $this->importGetFieldValue('categories_name', $data));
-                foreach ($categories as $current_category_name) {
-                    $category_info_sql = 
-                        "SELECT c.categories_id FROM " . TABLE_CATEGORIES . " c
-                                INNER JOIN " . TABLE_CATEGORIES_DESCRIPTION . " cd
-                                    ON cd.categories_id = c.categories_id
-                                   AND cd.language_id = $language_id
-                          WHERE c.parent_id = $parent_category 
-                            AND cd.categories_name = :categories_name: 
-                          LIMIT 1";
-                    $category_info = $db->Execute($db->bindVars($category_info_sql, ':categories_name:', $current_category_name, 'string'), false, false, 0, true);
-                    if ($category_info->EOF) {
-                        $this->debugMessage("Product not unlinked at line #" . $this->stats['record_count'] . "; category '$current_category_name' not present in the specified category-path.", self::DBIO_ERROR);
-                        $categories_name_ok = false;
-                    } else {
-                        $parent_category = $category_info->fields['categories_id'];
-                    }
-                }
-                if ($categories_name_ok === false) {
+
+                $parent_category = $this->getCategoriesIdFromName($data, 'Product not unlinked');
+                if ($parent_category === false) {
                     break;
                 }
 
@@ -788,11 +852,47 @@ class DbIoProductsHandler extends DbIoHandler
                     $db->Execute($unlink_sql);
                 }
                 break;
+
             default:
                 $this->debugMessage("Unrecognized command ($command) found at line #" . $this->stats['record_count'] . "; the operation was not performed.", self::DBIO_ERROR);
                 break;
         }
         return $continue_line_import;
+    }
+
+    // -----
+    // This function returns the categories_id associated with the 'v_categories_name' specified, returning either (bool)false
+    // if there is no such category tree or the categories_id otherwise.
+    //
+    protected function getCategoriesIdFromName(array $data, string $message_heading): string|false
+    {
+        global $db;
+
+        $parent_category = 0;
+        $categories_name_ok = true;
+        $language_id = $this->languages[DEFAULT_LANGUAGE];
+        $categories = explode('^', $this->importGetFieldValue('categories_name', $data));
+        foreach ($categories as $current_category_name) {
+            $category_info_sql =
+                "SELECT c.categories_id FROM " . TABLE_CATEGORIES . " c
+                        INNER JOIN " . TABLE_CATEGORIES_DESCRIPTION . " cd
+                            ON cd.categories_id = c.categories_id
+                           AND cd.language_id = $language_id
+                  WHERE c.parent_id = $parent_category 
+                    AND cd.categories_name = :categories_name:
+                  LIMIT 1";
+            $category_info = $db->Execute(
+                $db->bindVars($category_info_sql, ':categories_name:', $current_category_name, 'string'), false, false, 0, true
+            );
+            if ($category_info->EOF) {
+                $this->debugMessage("$message_heading at line #" . $this->stats['record_count'] . "; category '$current_category_name' not present in the specified category-path.", self::DBIO_ERROR);
+                $categories_name_ok = false;
+                break;
+            } else {
+                $parent_category = $category_info->fields['categories_id'];
+            }
+        }
+        return ($categories_name_ok === false) ? false : $parent_category;
     }
 
     // -----
@@ -1177,14 +1277,19 @@ class DbIoProductsHandler extends DbIoHandler
             if ($this->operation !== 'check') {
                 $sql_data_array = [
                     [
-                        'fieldName' => 'parent_id', 
-                        'value' => $parent_category_id, 
-                        'type' => 'integer' 
+                        'fieldName' => 'parent_id',
+                        'value' => $parent_category_id,
+                        'type' => 'integer'
                     ],
                     [
-                        'fieldName' => 'date_added', 
-                        'value' => 'now()', 
-                        'type' => 'noquotestring' 
+                        'fieldName' => 'date_added',
+                        'value' => 'now()',
+                        'type' => 'noquotestring'
+                    ],
+                    [
+                        'fieldName' => 'sort_order',
+                        'value' => 0,
+                        'type' => 'integer'
                     ],
                 ];
                 $db->perform(TABLE_CATEGORIES, $sql_data_array);
@@ -1192,14 +1297,14 @@ class DbIoProductsHandler extends DbIoHandler
                 
                 $description_array = [
                     [
-                        'fieldName' => 'categories_id', 
-                        'value' => $created_category_id, 
-                        'type' => 'integer' 
+                        'fieldName' => 'categories_id',
+                        'value' => $created_category_id,
+                        'type' => 'integer'
                     ],
                     [
-                        'fieldName' => 'categories_name', 
-                        'value' => $categories_name, 
-                        'type' => 'string' 
+                        'fieldName' => 'categories_name',
+                        'value' => $categories_name,
+                        'type' => 'string'
                     ],
                     [
                         'fieldName' => 'categories_description',
@@ -1210,9 +1315,9 @@ class DbIoProductsHandler extends DbIoHandler
                 foreach ($this->languages as $language_code => $language_id) {
                     $sql_data_array = $description_array;
                     $sql_data_array[] = [
-                        'fieldName' => 'language_id', 
-                        'value' => $language_id, 
-                        'type' => 'integer' 
+                        'fieldName' => 'language_id',
+                        'value' => $language_id,
+                        'type' => 'integer'
                     ];
                     $db->perform(TABLE_CATEGORIES_DESCRIPTION, $sql_data_array);
                 }
@@ -1263,8 +1368,8 @@ class DbIoProductsHandler extends DbIoHandler
                 if ($this->operation !== 'check') {
                     $pID = ($this->import_is_insert === true) ? $products_id : $this->key_fields['products_id'];
                     $db->Execute(
-                        "INSERT IGNORE INTO $table_name 
-                            (products_id, categories_id) 
+                        "INSERT IGNORE INTO $table_name
+                            (products_id, categories_id)
                          VALUES 
                             ($pID, " . (int)$table_fields['categories_id']['value'] . ")"
                     );
@@ -1281,8 +1386,7 @@ class DbIoProductsHandler extends DbIoHandler
             //
             case TABLE_META_TAGS_PRODUCTS_DESCRIPTION:
                 if (empty($this->import_language_id)) {
-                    trigger_error("importUpdateRecordKey, missing 'import_language_id'.", E_USER_ERROR);
-                    exit();
+                    dbioLogError("importUpdateRecordKey, missing 'import_language_id'.");
                 }
                 $this->debugMessage("importUpdateRecordKey: " . print_r($table_fields, true) . PHP_EOL . 'key_fields: ' . print_r($this->key_fields, true));
                 $table_data = '';
@@ -1304,7 +1408,7 @@ class DbIoProductsHandler extends DbIoHandler
                         // the record-deletion SQL.  Otherwise, actually run the SQL, removing that record.
                         //
                         $sql = 
-                            "DELETE FROM " . TABLE_META_TAGS_PRODUCTS_DESCRIPTION . " 
+                            "DELETE FROM " . TABLE_META_TAGS_PRODUCTS_DESCRIPTION . "
                               WHERE products_id = " . $this->key_fields['products_id'] . "
                                 AND language_id = " . $this->import_language_id . "
                               LIMIT 1";

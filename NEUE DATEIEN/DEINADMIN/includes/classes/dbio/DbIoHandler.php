@@ -1,9 +1,9 @@
 <?php
 // -----
 // Part of the DataBase Import/Export (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
-// Copyright (c) 2016-2023, Vinos de Frutas Tropicales.
+// Copyright (c) 2016-2025, Vinos de Frutas Tropicales.
 //
-// Last updated: DbIo v2.0.0.
+// Last updated: DbIo v2.1.0
 //
 if (!defined('IS_ADMIN_FLAG')) {
     exit('Illegal access');
@@ -85,6 +85,8 @@ abstract class DbIoHandler extends base
         $handler_does_import,
         $handler_overrides_import,
         $import_sql_data,
+        $export_where_clause,
+        $export_order_by_clause,
 
         $table_names,
 
@@ -171,7 +173,7 @@ abstract class DbIoHandler extends base
 
     public static function getHandlerInformation()
     {
-        trigger_error("Missing handler information for the active report", E_USER_ERROR);
+        dbioLogError("Missing handler information for the active report");
     }
 
     public static function getHandlerExportFilters()
@@ -332,7 +334,7 @@ abstract class DbIoHandler extends base
                 $date_time_split = explode(' ', $date_value);
                 $needle = (dbio_strpos($date_time_split[0], '/') !== false) ? '/' : '-';
                 $date_split = explode($needle, $date_time_split[0]);
-                if (count($date_split) === 3) {
+                if (count($date_split) === 3 && dbio_strlen($date_split[0]) !== 4) {
                     if (DBIO_IMPORT_DATE_FORMAT === 'd-m-y') {
                         $date_value = sprintf('%u-%02u-%02u', $date_split[2], $date_split[1], $date_split[0]);
                     } else {
@@ -522,8 +524,7 @@ abstract class DbIoHandler extends base
     public function exportGetSql($sql_limit = '')
     {
         if (!isset($this->export_language) || !isset($this->select_clause)) {
-            trigger_error('Export aborted: DbIo export sequence error; not previously initialized.', E_USER_ERROR);
-            exit();
+            dbioLogError('Export aborted: DbIo export sequence error; not previously initialized.');
         }
 
         $export_sql = 'SELECT ' . $this->select_clause . ' FROM ' . $this->from_clause;
@@ -558,11 +559,9 @@ abstract class DbIoHandler extends base
         $this->logCharacterSetConfig();
 
         if (!isset($this->config)) {
-            trigger_error('Import aborted: DbIo helper not configured.', E_USER_ERROR);
-            exit();
+            dbioLogError('Import aborted: DbIo helper not configured.');
         } elseif (!isset($this->config['keys']) || !is_array($this->config['keys'])) {
-            trigger_error('Import aborted: DbIo helper\'s "keys" configuration is not set or not an array.', E_USER_ERROR);
-            exit();
+            dbioLogError('Import aborted: DbIo helper\'s "keys" configuration is not set or not an array.');
         }
 
         if ($this->version_mismatch === true) {
@@ -654,8 +653,7 @@ abstract class DbIoHandler extends base
     public function importGetHeader($header)
     {
         if (!isset($this->headers)) {
-            trigger_error("Import aborted, sequencing error. Can't get the header before overall initialization.", E_USER_ERROR);
-            exit();
+            dbioLogError("Import aborted, sequencing error. Can't get the header before overall initialization.");
         }
         if (!is_array($header)) {
             $this->debugMessage('importGetHeader: No header included, using generated default.');
@@ -859,8 +857,7 @@ abstract class DbIoHandler extends base
         global $db;
 
         if (!isset($this->table_names)) {
-            trigger_error("Import aborted, sequencing error. Previous import-header initialization error.", E_USER_ERROR);
-            exit();
+            dbioLogError("Import aborted, sequencing error. Previous import-header initialization error.");
         }
         $this->debugMessage("importCsvRecord: starting ...");
 
@@ -1616,8 +1613,7 @@ abstract class DbIoHandler extends base
         if (!isset($this->config) || !is_array($this->config) || 
             !( (isset($this->config['tables']) && is_array($this->config['tables'])) ||
                (isset($this->config['fixed_headers']) && is_array($this->config['fixed_headers'])) ) ) {
-            trigger_error('DbIo configuration not set prior to initialize.  Current class: ' . print_r($this, true), E_USER_ERROR);
-            exit();
+            dbioLogError('DbIo configuration not set prior to initialize.  Current class: ' . print_r($this, true));
         }
 
         $this->config['operation'] = null;
@@ -1749,8 +1745,7 @@ abstract class DbIoHandler extends base
     protected function headerInsertColumns($after_key, $insert_array)
     {
         if (array_search($after_key, $this->headers) === false) {
-            trigger_error("Unknown key ($after_key) requested", E_USER_ERROR);
-            exit();
+            dbioLogError("Unknown key ($after_key) requested");
         } else {
             foreach ($insert_array as $current_value) {
                 $this->headers = $this->arrayInsertAfter($this->headers, $after_key, $current_value);
