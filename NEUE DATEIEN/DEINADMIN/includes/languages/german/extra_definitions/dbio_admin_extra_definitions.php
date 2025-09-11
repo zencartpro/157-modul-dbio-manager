@@ -1,9 +1,9 @@
 <?php
 // -----
 // Part of the DataBase Import/Export (aka DbiO) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
-// Copyright (c) 2016-2017, Vinos de Frutas Tropicales.
+// Copyright (c) 2016-2025, Vinos de Frutas Tropicales.
 //
-define ('BOX_TOOLS_DBIO', 'Datenbank-Ein-/Ausgabe-Manager');
+define ('BOX_TOOLS_DBIO', 'DbIo-Manager');
 define ('BOX_CONFIGURATION_DBIO', 'DbIo-Manager-Einstellungen');
 define ('BOX_TOOLS_DBIO_CUSTOMIZE', 'DbIo-Vorlagen verwalten');
 
