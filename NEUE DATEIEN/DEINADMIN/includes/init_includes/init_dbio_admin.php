@@ -16,7 +16,7 @@ if (empty($_SESSION['admin_id'])) {
 }
 
 define('DBIO_CURRENT_VERSION', '2.1.0');
-define('DBIO_CURRENT_UPDATE_DATE', '2025-09-10');
+define('DBIO_CURRENT_UPDATE_DATE', '2025-09-11');
 
 $version_release_date = DBIO_CURRENT_VERSION . ' (' . DBIO_CURRENT_UPDATE_DATE . ')';
 
@@ -46,7 +46,7 @@ if (defined('DBIO_MODULE_VERSION')) {
 
     $db->Execute("INSERT INTO " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added, use_function, set_function) VALUES ('CSV: Enclosure', 'DBIO_CSV_ENCLOSURE', '\"', 'Enter the single character used to <em>enclose</em> fields within any DbIo CSV file.  (Default: <b>\"</b>)', $cgi, 6, now(), NULL, NULL)");
   
-    $db->Execute("INSERT INTO " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added, use_function, set_function) VALUES ('CSV: Escape', 'DBIO_CSV_ESCAPE', '\\\\', 'Enter the single character used as the escape-character within any DbIo CSV file.  (Default: <b>backslash</b>)', $cgi, 7, now(), NULL, NULL)");
+  $db->Execute("INSERT INTO " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added, use_function, set_function) VALUES ('CSV: Escape', 'DBIO_CSV_ESCAPE', '\\\', 'Enter the single character used as the escape-character within any DbIo CSV file.  (Default: <b>backslash</b>)', $cgi, 7, now(), NULL, NULL)");
   
     $db->Execute("INSERT INTO " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added, use_function, set_function) VALUES ('CSV: Encoding', 'DBIO_CHARSET', 'utf8', 'Choose the type of encoding to be associated with DbIo CSV files.  If you use Microsoft&reg; Excel, choose <b>latin1</b>.  (Default: <b>utf8</b>).', $cgi, 10, now(), NULL, 'zen_cfg_select_option([\'utf8\', \'latin1\'],')");
   
@@ -87,14 +87,14 @@ if (defined('DBIO_MODULE_VERSION')) {
         "REPLACE INTO " . TABLE_CONFIGURATION_LANGUAGE . " 
             (configuration_title, configuration_key, configuration_language_id, configuration_description, last_modified, date_added) 
          VALUES 
-            ('CSV : Escape Zeichen', 'DBIO_CSV_ESCAPE', '43', 'Geben Sie das Zeichen ein, das als <em>Escape Zeichen</em> innerhalb einer DbIo CSV-Datei verwendet werden soll.  (Voreinstllung: <b>backslash</b>)', now(), now())"
+            ('CSV : Escape Zeichen', 'DBIO_CSV_ESCAPE', '43', 'Geben Sie das Zeichen ein, das als <em>Escape Zeichen</em> innerhalb einer DbIo CSV-Datei verwendet werden soll.  (Voreinstellung: <b>backslash</b>)', now(), now())"
     );
     
     $db->Execute (
         "REPLACE INTO " . TABLE_CONFIGURATION_LANGUAGE . " 
             (configuration_title, configuration_key, configuration_language_id, configuration_description, last_modified, date_added) 
          VALUES 
-            ('CSV : Kodierung', 'DBIO_CHARSET', '43', 'Wählen Sie die Kodierung für DbIo CSV Dateien.  Wenn Sie Microsoft&reg; Excel verwenden, wählen Sie <b>latin1</b><br/><b>Dringend empfohlen:<br/>Verwenden Sie Open Office und NICHT Excel für Ihre csv Dateien und lassen Sie die Voreinstellung auf utf-8!</b><br/><b/>  (Voreinstellung: <b>utf8</b>)', now(), now())"
+            ('CSV : Kodierung', 'DBIO_CHARSET', '43', 'Wählen Sie die Kodierung für DbIo CSV Dateien.  Wenn Sie Microsoft&reg; Excel verwenden, wählen Sie <b>latin1</b><br/><b>Dringend empfohlen:<br/>Verwenden Sie Libre Office und NICHT Excel für Ihre csv Dateien und lassen Sie die Voreinstellung auf utf-8!</b><br/><b/>  (Voreinstellung: <b>utf8</b>)', now(), now())"
     );
     
     $db->Execute (
@@ -208,7 +208,7 @@ if (DBIO_CURRENT_VERSION !== $dbio_current_version) {
                     "INSERT INTO " . TABLE_DBIO_REPORTS_DESCRIPTION . "
                         (dbio_reports_id, language_id, report_description) 
                     VALUES
-                        ($dbio_reports_id, $current_language_id, 'This template supports products'' quantity updates, creating an exported file that contains a product''s ID, model-number and current quantity.')"
+                        ($dbio_reports_id, $current_language_id, 'Diese Vorlage unterstützt die Aktualisierung der Artikelmengen und erstellt eine Exportdatei, die die Artikel-ID, die Artikelnummer und die aktuelle Menge enthält.')"
                 );
             }
 
@@ -225,7 +225,7 @@ if (DBIO_CURRENT_VERSION !== $dbio_current_version) {
                     "INSERT INTO " . TABLE_DBIO_REPORTS_DESCRIPTION . "
                         (dbio_reports_id, language_id, report_description) 
                     VALUES
-                        ($dbio_reports_id, $current_language_id, 'This template supports the export of a product''s meta-tags, including each product''s ID, model-number and meta-tag-related fields.')"
+                        ($dbio_reports_id, $current_language_id, 'Diese Vorlage unterstützt den Export der Meta-Tags eines Artikels, einschließlich der ID jedes Artikels, der Artikelnummer und der Meta-Tag-bezogenen Felder.')"
                 );
             }
         }
@@ -290,7 +290,7 @@ if (DBIO_CURRENT_VERSION !== $dbio_current_version) {
         "REPLACE INTO " . TABLE_CONFIGURATION_LANGUAGE . " 
             (configuration_title, configuration_key, configuration_language_id, configuration_description, last_modified, date_added) 
          VALUES 
-            ('CSV : Kodierung', 'DBIO_CHARSET', '43', 'Wählen Sie die Kodierung für DbIo CSV Dateien.  Wenn Sie Microsoft&reg; Excel verwenden, wählen Sie <b>latin1</b><br/><b>Dringend empfohlen:<br/>Verwenden Sie Open Office und NICHT Excel für Ihre csv Dateien und lassen Sie die Voreinstellung auf utf-8!</b><br/><b/>  (Voreinstellung: <b>utf8</b>)', now(), now())"
+            ('CSV : Kodierung', 'DBIO_CHARSET', '43', 'Wählen Sie die Kodierung für DbIo CSV Dateien.  Wenn Sie Microsoft&reg; Excel verwenden, wählen Sie <b>latin1</b><br/><b>Dringend empfohlen:<br/>Verwenden Sie Libre Office und NICHT Excel für Ihre csv Dateien und lassen Sie die Voreinstellung auf utf-8!</b><br/><b/>  (Voreinstellung: <b>utf8</b>)', now(), now())"
     );
     
     $db->Execute (

@@ -8,12 +8,15 @@ Zahlreiche Exporte/Importe vordefiniert (Kunden, Bestellungen, Artikel, Metatags
 Bei der Installation werden keinerlei bestehende Dateien geändert oder überschrieben.
 Einfach im Ordner NEUE DATEIEN den Ordner DEINADMIN auf den Namen des Adminverzeichnisses umbenennen und in der vorgegebenen Struktur ins Shopverzeichnis hochladen.
 Den Ordnern dbio und dbio/logs Schreibrechte geben (chmod 777)
-Danach ist in der Administration unter Tools der neue Menüpunkt Database I/O Manager vorhanden
+Danach ist in der Administration unter Tools der neue Menüpunkt Database I/O Manager vorhanden.
+
+Eine umfangreiche Dokumentation zur Verwendung (englisch) finden Sie hier:
+https://github.com/lat9/dbio/wiki
 
 getestet mit:
 
 Zen Cart Version:
-1.5.7 deutsch
+1.5.7j deutsch
 
 PHP Version:
-8.0.x
+8.3.x
