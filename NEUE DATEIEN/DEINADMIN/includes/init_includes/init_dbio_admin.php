@@ -3,7 +3,7 @@
 // Part of the DataBase I/O Manager (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
 // Copyright (c) 2016-2025, Vinos de Frutas Tropicales.
 
-// Multilanguage Install - 2025-09-10 webchills
+// Multilanguage Install - 2025-11-23 webchills
 if (!defined('IS_ADMIN_FLAG')) {
     die('Illegal Access');
 }
@@ -16,7 +16,7 @@ if (empty($_SESSION['admin_id'])) {
 }
 
 define('DBIO_CURRENT_VERSION', '2.1.0');
-define('DBIO_CURRENT_UPDATE_DATE', '2025-09-11');
+define('DBIO_CURRENT_UPDATE_DATE', '2025-11-23');
 
 $version_release_date = DBIO_CURRENT_VERSION . ' (' . DBIO_CURRENT_UPDATE_DATE . ')';
 
@@ -46,7 +46,7 @@ if (defined('DBIO_MODULE_VERSION')) {
 
     $db->Execute("INSERT INTO " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added, use_function, set_function) VALUES ('CSV: Enclosure', 'DBIO_CSV_ENCLOSURE', '\"', 'Enter the single character used to <em>enclose</em> fields within any DbIo CSV file.  (Default: <b>\"</b>)', $cgi, 6, now(), NULL, NULL)");
   
-  $db->Execute("INSERT INTO " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added, use_function, set_function) VALUES ('CSV: Escape', 'DBIO_CSV_ESCAPE', '\\\', 'Enter the single character used as the escape-character within any DbIo CSV file.  (Default: <b>backslash</b>)', $cgi, 7, now(), NULL, NULL)");
+  $db->Execute("INSERT INTO " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added, use_function, set_function) VALUES ('CSV: Escape', 'DBIO_CSV_ESCAPE', '\\\\', 'Enter the single character used as the escape-character within any DbIo CSV file.  (Default: <b>backslash</b>)', $cgi, 7, now(), NULL, NULL)");
   
     $db->Execute("INSERT INTO " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added, use_function, set_function) VALUES ('CSV: Encoding', 'DBIO_CHARSET', 'utf8', 'Choose the type of encoding to be associated with DbIo CSV files.  If you use Microsoft&reg; Excel, choose <b>latin1</b>.  (Default: <b>utf8</b>).', $cgi, 10, now(), NULL, 'zen_cfg_select_option([\'utf8\', \'latin1\'],')");
   
@@ -283,7 +283,7 @@ if (DBIO_CURRENT_VERSION !== $dbio_current_version) {
         "REPLACE INTO " . TABLE_CONFIGURATION_LANGUAGE . " 
             (configuration_title, configuration_key, configuration_language_id, configuration_description, last_modified, date_added) 
          VALUES 
-            ('CSV : Escape Zeichen', 'DBIO_CSV_ESCAPE', '43', 'Geben Sie das Zeichen ein, das als <em>Escape Zeichen</em> innerhalb einer DbIo CSV-Datei verwendet werden soll.  (Voreinstllung: <b>backslash</b>)', now(), now())"
+            ('CSV : Escape Zeichen', 'DBIO_CSV_ESCAPE', '43', 'Geben Sie das Zeichen ein, das als <em>Escape Zeichen</em> innerhalb einer DbIo CSV-Datei verwendet werden soll.  (Voreinstellung: <b>backslash</b>)', now(), now())"
     );
     
     $db->Execute (
