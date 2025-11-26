@@ -2,7 +2,7 @@
 // -----
 // Part of the DataBase Import/Export (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
 //
-// last update: 2025-09-11 webchills
+// last update: 2025-09-25 webchills
 //
 // Copyright (c) 2017-2025, Vinos de Frutas Tropicales.
 //
@@ -57,7 +57,7 @@ define('BUTTON_CANCEL', 'Abbrechen');
 define('BUTTON_CANCEL_TITLE', 'Klicken Sie hier, um die aktuelle Aktion abzubrechen');
 
 define('INSTRUCTIONS_MAIN',
-'Auf dieser Seite können Sie eine Exportvorlage für den DbIo-Handler <em>%1$s</em> anpassen. Sie können eine Teilmenge der von diesem Handler unterstützten Felder auswählen und auch die Reihenfolge anpassen, in der diese Felder in die zugehörigen Spalten der CSV-Datei exportiert werden. Weitere Informationen finden Sie in diesem <a href="https://github.com/lat9/dbio/wiki/Manage-DbIo-Templates" target="_blank" rel="noreferrer noopener">Wiki-Artikel</a>.' .
+'Auf dieser Seite können Sie eine Exportvorlage für den DbIo-Handler <em>%1$s</em> anpassen. Sie können eine Teilmenge der von diesem Handler unterstützten Felder auswählen und auch die Reihenfolge anpassen, in der diese Felder in die zugehörigen Spalten der CSV-Datei exportiert werden. Weitere Informationen finden Sie in der deutschsprachigen Dokumentation auf <a href="https://dbio.zen-cart-pro.at" target="_blank">https://dbio.zen-cart-pro.at</a> und in diesem <a href="https://github.com/lat9/dbio/wiki/Manage-DbIo-Templates" target="_blank" rel="noreferrer noopener">Wiki-Artikel</a> (english).' .
 '<br><br>' .
 'Der <em>Gültigkeitsbereich</em> einer Vorlage kann entweder <b>' . TEXT_SCOPE_PUBLIC . '</b> sein, verfügbar für alle Admin-Benutzer, oder <b>' . TEXT_SCOPE_PRIVATE . '</b>, nur für Ihre Verwendung verfügbar. Der <em>Name</em> der Vorlage wird Teil des Namens einer exportierten CSV-Datei, wenn die Vorlage zum Anpassen einer Exportaktion verwendet wird, z. B. <code>dbio.%1$s.template_name.datetime_string</code>. Die von Ihnen angegebene <em>Beschreibung</em> wird auf dem Hauptbildschirm des <strong>Database I/O Manager</strong> angezeigt, wenn die Vorlage ausgewählt wird, und gibt Ihnen eine Bestätigung der Funktionen der Vorlage. '
 );

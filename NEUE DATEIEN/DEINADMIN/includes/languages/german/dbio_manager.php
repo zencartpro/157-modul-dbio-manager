@@ -3,7 +3,7 @@
 // Part of the DataBase Import/Export (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
 // Copyright (c) 2016-2025, Vinos de Frutas Tropicales.
 //
-// last update: 2025-09-11 webchills
+// last update: 2025-09-25 webchills
 //
 define('HEADING_TITLE', 'Database I/O (DbIo) Manager');
 
@@ -41,7 +41,7 @@ define('LEGEND_CONFIGURATION', 'Konfiguration');
 define('LEGEND_FILE_ACTIONS', 'Datei-Aktionen');
 define('LEGEND_FILE_UPLOADS', 'Datei-Uploads');
 
-define('TEXT_INSTRUCTIONS', 'Der <b><i>DbIo Manager</i></b> bietet <em>Handler</em>, die den Export und unter bestimmten Bedingungen auch den Import von Datenbankinformationen mithilfe einer CSV-Datei (Comma-Separated-Value) ermöglichen. Wählen Sie den zu verwendenden Handler aus der Dropdown-Liste unten aus, woraufhin die Funktionen dieses Handlers, z. B. Filter und/oder Optionen zur Anpassung von Vorlagen, angezeigt werden.<br><br>Weitere Informationen (englisch) finden Sie auf der <a href="https://github.com/lat9/dbio/wiki" target="_blank" rel="noreferrer noopener">Wiki-Page</a> zum Plugin.');
+define('TEXT_INSTRUCTIONS', 'Der <b><i>DbIo Manager</i></b> bietet <em>Handler</em>, die den Export und unter bestimmten Bedingungen auch den Import von Datenbankinformationen mithilfe einer CSV-Datei (Comma-Separated-Value) ermöglichen. Wählen Sie den zu verwendenden Handler aus der Dropdown-Liste unten aus, woraufhin die Funktionen dieses Handlers, z. B. Filter und/oder Optionen zur Anpassung von Vorlagen, angezeigt werden.<br><br>Weitere Informationen finden Sie in der deutschsprachigen Dokumentation auf <a href="https://dbio.zen-cart-pro.at" target=_blank">https://dbio.zen-cart-pro.at</a> und auf der <a href="https://github.com/lat9/dbio/wiki" target="_blank" rel="noreferrer noopener">Wiki-Page</a> zum Plugin (english).');
 
 define('DBIO_BUTTON_DELETE', 'Löschen');
 define('DBIO_BUTTON_DELETE_TITLE', 'Klicken Sie hier, um die aktuell ausgewählten Dateien vom Server zu löschen.');
