@@ -1,9 +1,9 @@
 <?php
 // -----
 // Part of the DataBase I/O Manager (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
-// Copyright (c) 2016-2025, Vinos de Frutas Tropicales.
+// Copyright (c) 2016-2026, Vinos de Frutas Tropicales.
 
-// Multilanguage Install - 2025-11-23 webchills
+// Multilanguage Install - 2026-05-26 webchills
 if (!defined('IS_ADMIN_FLAG')) {
     die('Illegal Access');
 }
@@ -15,8 +15,8 @@ if (empty($_SESSION['admin_id'])) {
     return;
 }
 
-define('DBIO_CURRENT_VERSION', '2.1.0');
-define('DBIO_CURRENT_UPDATE_DATE', '2025-11-23');
+define('DBIO_CURRENT_VERSION', '2.1.1');
+define('DBIO_CURRENT_UPDATE_DATE', '2026-05-26');
 
 $version_release_date = DBIO_CURRENT_VERSION . ' (' . DBIO_CURRENT_UPDATE_DATE . ')';
 
@@ -197,7 +197,7 @@ if (DBIO_CURRENT_VERSION !== $dbio_current_version) {
             
             $db->Execute(
                 "INSERT INTO " . TABLE_DBIO_REPORTS . "
-                    (handler_name, report_name, admin_id, last_updated_by, last_updated, field_info) 
+                    (handler_name, report_name, admin_id, last_updated_by, last_updated, field_info)
                 VALUES
                     ('Products', 'quantity_only', 0, 0, now(), 0x5b2270726f64756374735f6964222c2270726f64756374735f6d6f64656c222c2270726f64756374735f7175616e74697479225d)"
             );
