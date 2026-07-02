@@ -1,9 +1,11 @@
 <?php
+
+declare(strict_types=1);
 // -----
 // Part of the Database I/O Manager (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
-// Copyright (c) 2015-2025, Vinos de Frutas Tropicales.
+// Copyright (c) 2015-2026, Vinos de Frutas Tropicales.
 //
-// Last updated: DbIo v2.1.0
+// Last updated: DbIo v2.2.0
 //
 if (!defined('IS_ADMIN_FLAG')) {
     exit ('Illegal access');
@@ -14,9 +16,9 @@ if (!defined('IS_ADMIN_FLAG')) {
 //
 class DbIoFeaturedHandler extends DbIoHandler
 {
-    public static function getHandlerInformation()
+    public static function getHandlerInformation(): array
     {
-        DbIoHandler::loadHandlerMessageFile('Featured'); 
+        DbIoHandler::loadHandlerMessageFile('Featured');
         return [
             'version' => '2.1.0',
             'handler_version' => '1.0.0',
@@ -26,7 +28,7 @@ class DbIoFeaturedHandler extends DbIoHandler
         ];
     }
 
-    public function exportInitialize($language = 'all')
+    public function exportInitialize($language = 'all'): bool
     {
         $initialized = parent::exportInitialize($language);
         if ($initialized === true) {
@@ -39,23 +41,16 @@ class DbIoFeaturedHandler extends DbIoHandler
     // For each 'featured' row's export, append the product's name, model-number and 'base price' to the output,
     // adding those fields for reference use.
     //
-    // Note: Since this handler supports DbIo commands, the base class' handling has appended an empty
-    // column as the last field to hold a potential command (this handler supports REMOVE).  Need to remove that
-    // column's data from the fields prior to inserting the 'helper' columns and then add it back.
-    //
     public function exportPrepareFields(array $fields)
     {
-        $fields = parent::exportPrepareFields($fields);
-        array_pop($fields);
         unset($fields['featured_id']);
 
         $products_id = $fields['products_id'];
-        
         $fields['products_price'] = zen_get_products_base_price($products_id);
         $fields['products_model'] = zen_get_products_model($products_id);
         $fields['products_name'] = zen_get_products_name($products_id);
-        $fields['v_dbio_command'] = '';
-        return $fields;
+
+        return parent::exportPrepareFields($fields);
     }
 
 // ----------------------------------------------------------------------------------
@@ -66,7 +61,7 @@ class DbIoFeaturedHandler extends DbIoHandler
     // This function, called during the overall class construction, is used to set this handler's database
     // configuration for the dbIO operations.
     //
-    protected function setHandlerConfiguration()
+    protected function setHandlerConfiguration(): void
     {
         $this->stats['report_name'] = 'Featured';
         $this->config = self::getHandlerInformation();
@@ -85,7 +80,7 @@ class DbIoFeaturedHandler extends DbIoHandler
                 'io_field_overrides' => [
                     'featured_id' => 'no-header',
                 ],
-            ], 
+            ],
         ];
         $this->config['additional_headers'] = [
             'v_products_price' => self::DBIO_FLAG_NONE,
@@ -102,7 +97,7 @@ class DbIoFeaturedHandler extends DbIoHandler
     //                           that the field is calculated separately by the handler's processing.
     // - DBIO_SPECIAL_IMPORT ... The field requires special-handling by the handler to create the associated database elements.
     //
-    protected function importHeaderFieldCheck($field_name)
+    protected function importHeaderFieldCheck(string $field_name): string
     {
         if ($field_name !== 'featured_id' && in_array($field_name, array_keys($this->tables['featured']['fields']))) {
             return self::DBIO_IMPORT_OK;
@@ -110,7 +105,7 @@ class DbIoFeaturedHandler extends DbIoHandler
         return self::DBIO_NO_IMPORT;
     }
 
-    protected function importProcessField($table_name, $field_name, $language_id, $field_value)
+    protected function importProcessField(string $table_name, string $field_name, string $language_id, ?string $field_value): void
     {
         global $db;
 
@@ -136,7 +131,7 @@ class DbIoFeaturedHandler extends DbIoHandler
         parent::importProcessField($table_name, $field_name, $language_id, $field_value);
     }
 
-    protected function importAddField($table_name, $field_name, $field_value)
+    protected function importAddField(string $table_name, string $field_name, ?string $field_value): void
     {
         $this->debugMessage("Featured::importAddField($table_name, $field_name, $field_value)");
         switch ($table_name) {
@@ -162,7 +157,7 @@ class DbIoFeaturedHandler extends DbIoHandler
     // This function, called by the base DbIoHandler class when a non-blank v_dbio_command field is found in the
     // current import-record, gives this handler a chance to REMOVE a featured product's record from the database.
     //
-    protected function importHandleDbIoCommand($command, $data)
+    protected function importHandleDbIoCommand(string $command, array $data): bool
     {
         global $db;
 

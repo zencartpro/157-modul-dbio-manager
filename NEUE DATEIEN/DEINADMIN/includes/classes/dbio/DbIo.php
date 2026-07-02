@@ -1,41 +1,39 @@
 <?php
+
+declare(strict_types=1);
 // -----
 // Part of the DataBase Import/Export (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
-// Copyright (c) 2015-2025, Vinos de Frutas Tropicales.
+// Copyright (c) 2015-2026, Vinos de Frutas Tropicales.
 //
-// Last updated: DbIo v2.0.2
+// Last updated: DbIo v2.2.0
 //
-if (!defined('IS_ADMIN_FLAG')) { 
+if (!defined('IS_ADMIN_FLAG')) {
     exit('Illegal access');
 }
 
-class DbIo extends base
+class DbIo
 {
-    public
-        $handler;
+    public object $handler;
 
-    protected
-        $message = '',
-        $initialized = false,
-        $file_suffix,
-        $using_mbstring,
-        $dbio_type,
-        $csv_parms,
-        $import_fp,
-        $export_sql,
-        $export_filename,
-        $export_fp;
+    protected array $csv_parms;
+    protected string $dbio_type;
+    protected string $export_filename;
 
-    public function __construct($dbio_type = '', $file_suffix = '')
+    protected $export_fp;   //- A file-pointer `resource`, but that type isn't available for type-hinting.
+    protected string $export_sql;
+    protected string $file_suffix;
+
+    protected $import_fp;   //- A file-pointer `resource`, but that type isn't available for type-hinting.
+    protected bool $initialized = false;
+    protected string $message = '';
+    protected bool $using_mbstring;
+
+    public function __construct(string $dbio_type = '', string $file_suffix = '')
     {
         $this->file_suffix = (($file_suffix === '') ? '' : ($file_suffix . '.')) . date('Ymd-His-') . mt_rand(1000,999999);
  
-        $message_file_name = DIR_FS_DBIO_LANGUAGES . $_SESSION['language'] . '/dbio/' . FILENAME_DBIO_MESSAGES;
-        if (!file_exists($message_file_name)) {
-            trigger_error("Missing DbIo message file ($message_file_name)", E_USER_WARNING);
-        } else {
-            require_once $message_file_name;
-        }
+        global $languageLoader;
+        $languageLoader->loadExtraLanguageFiles(DIR_FS_DBIO_LANGUAGES, $_SESSION['language'], FILENAME_DBIO_MESSAGES, '/dbio');
 
         spl_autoload_register([$this, 'autoloadDbIoClasses']);
 
@@ -50,7 +48,7 @@ class DbIo extends base
         $this->initializeConfig($dbio_type);
     }
 
-    protected function autoloadDbIoClasses($class_name)
+    protected function autoloadDbIoClasses($class_name): void
     {
         if (!class_exists($class_name) && file_exists(DIR_FS_DBIO_CLASSES . $class_name . '.php')) {
             require_once DIR_FS_DBIO_CLASSES . $class_name . '.php';
@@ -60,12 +58,12 @@ class DbIo extends base
     // -----
     // Returns the last message issued by the DbIo processing.
     //
-    public function getMessage()
+    public function getMessage(): string
     {
         return ($this->message === '') ? $this->handler->getHandlerMessage() : $this->message;
     }
 
-    public function isInitialized()
+    public function isInitialized(): bool
     {
         return $this->initialized;
     }
@@ -76,7 +74,7 @@ class DbIo extends base
     // Note: A handler can "refuse" availability if it's missing some of its pre-requisites by returning
     // a non-array value (like false) in its getHandlerInformation function.
     //
-    public function getAvailableHandlers()
+    public function getAvailableHandlers(): array
     {
         $handlers = glob(DIR_FS_DBIO_CLASSES . 'DbIo*Handler.php');
         $handler_info = [];
@@ -99,13 +97,13 @@ class DbIo extends base
 
     // -----
     // Function to initialize the configuration settings for a given import type.  A given import type's configuration
-    // is controlled by a file named class.dbio.$dbio_type.php, present in the DIR_FS_DBIO directory. That class-file 
+    // is controlled by a file named class.dbio.$dbio_type.php, present in the DIR_FS_DBIO directory. That class-file
     // is a dbio_handler-class object.
     //
     // This function also calls a helper-function to ensure that the directories used by the DbIo for its operation
     // exist and are writable.
     //
-    protected function initializeConfig($dbio_type)
+    protected function initializeConfig(string $dbio_type): bool
     {
         unset($this->handler);
         $this->message = '';
@@ -139,7 +137,7 @@ class DbIo extends base
     // This function checks to ensure that the DbIo's input/output directories are present and writable, returning
     // a boolean indicator (true == OK, false == not-OK).
     //
-    protected function directoryCheck()
+    protected function directoryCheck(): bool
     {
         $ok = false;
         if (!is_dir(DIR_FS_DBIO)) {
@@ -160,7 +158,7 @@ class DbIo extends base
     // Function that handles an export for the currently-active DbIo type.  The function takes an input that determines
     // where the exported data "goes", either to a 'file' or 'download' to auto-download the generated .csv file.
     //
-    public function dbioExport($export_to = 'file', $language = 'all')
+    public function dbioExport(string $export_to = 'file', string $language = 'all'): array
     {
         global $db;
 
@@ -185,7 +183,7 @@ class DbIo extends base
                     trigger_error($this->message, E_USER_WARNING);
                 } else {
                     $this->debugMessage('dbioExport: Begin CSV creation loop.');
-                    ini_set('max_execution_time', DBIO_MAX_EXECUTION_TIME);
+                    ini_set('max_execution_time', zen_config('DBIO_MAX_EXECUTION_TIME'));
 
                     $this->writeCsvRecord($this->handler->exportGetHeader());
                     foreach ($export_info as $next_record) {
@@ -198,17 +196,15 @@ class DbIo extends base
 
                 if ($completion_code !== false && $export_to === 'download') {
                     if (dbio_strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE') !== false) {
-                        header('Content-Type: "application/octet-stream"');
+                        header('Content-Type: text/csv; charset=' . ((zen_config('DBIO_CHARSET') === 'utf8') ? 'UTF-8' : 'Windows-1252'));
                         header('Content-Disposition: attachment; filename="' . $this->export_filename . '"');
                         header('Expires: 0');
                         header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-                        header("Content-Transfer-Encoding: binary");
                         header('Pragma: public');
                         header("Content-Length: " . filesize(DIR_FS_DBIO_EXPORT . $this->export_filename));
                     } else {
-                        header('Content-Type: "application/octet-stream"');
+                        header('Content-Type: text/csv; charset=' . ((zen_config('DBIO_CHARSET') === 'utf8') ? 'UTF-8' : 'Windows-1252'));
                         header('Content-Disposition: attachment; filename="' . $this->export_filename . '"');
-                        header("Content-Transfer-Encoding: binary");
                         header('Expires: 0');
                         header('Pragma: no-cache');
                         header("Content-Length: " . filesize(DIR_FS_DBIO_EXPORT . $this->export_filename));
@@ -229,7 +225,7 @@ class DbIo extends base
             $this->message = $this->handler->getHandlerMessage();
         }
         return [
-            'status' => $completion_code, 
+            'status' => $completion_code,
             'export_filename' => !empty($this->export_filename) ? $this->export_filename : '',
             'message' => $this->message,
             'io_errors' => $this->handler->getIOErrors(),
@@ -244,7 +240,7 @@ class DbIo extends base
     // is specified as either 'all' (all store languages) or by the 2-character ISO code
     // associated with the language, e.g. 'en' for English or 'es' for Spanish.
     //
-    public function dbioImport($filename, $operation = 'check', $language = 'all')
+    public function dbioImport(string $filename, string $operation = 'check', string $language = 'all'): array
     {
         $completion_code = false;
         $this->message = '';
@@ -269,7 +265,7 @@ class DbIo extends base
                     if (!$this->handler->importGetHeader(($this->handler->isHeaderIncluded()) ? $this->getCsvRecord() : false)) {
                         $this->message = $this->handler->getHandlerMessage();
                     } else {
-                        ini_set('max_execution_time', DBIO_MAX_EXECUTION_TIME);
+                        ini_set('max_execution_time', zen_config('DBIO_MAX_EXECUTION_TIME'));
                         while (($data = $this->getCsvRecord()) !== false) {
                             $this->handler->importCsvRecord($data);
                         }
@@ -297,7 +293,7 @@ class DbIo extends base
     // Redirect any debug-messages from this level of processing to the handler's message handling, so that
     // all messages for a given import are recorded in a single location.
     //
-    protected function debugMessage($message)
+    protected function debugMessage(string $message): void
     {
         $this->handler->debugMessage($message);
     }
@@ -305,7 +301,7 @@ class DbIo extends base
     // -----
     // Write the specified array (or arrays!) of data to the current export .csv file.
     //
-    private function writeCsvRecord($csv_record)
+    private function writeCsvRecord(false|array $csv_record): void
     {
         if (is_array($csv_record) && count($csv_record) !== 0) {
             // -----
@@ -325,7 +321,7 @@ class DbIo extends base
     // -----
     // Retrieve (and return) the next record from the current import .csv file.
     //
-    private function getCsvRecord()
+    private function getCsvRecord(): false|array
     {
         return fgetcsv($this->import_fp, 0, $this->csv_parms['delimiter'], $this->csv_parms['enclosure'], $this->csv_parms['escape']);
     }

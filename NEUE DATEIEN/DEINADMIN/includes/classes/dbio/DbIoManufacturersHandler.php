@@ -1,9 +1,11 @@
 <?php
+
+declare(strict_types=1);
 // -----
 // Part of the DataBase Import/Export (aka DbIo) plugin, created by Cindy Merkin (cindy@vinosdefrutastropicales.com)
-// Copyright (c) 2017-2020, Vinos de Frutas Tropicales.
+// Copyright (c) 2017-2026, Vinos de Frutas Tropicales.
 //
-// Last updated: DbIo v2.0.0.
+// Last updated: DbIo v2.2.1
 //
 if (!defined('IS_ADMIN_FLAG')) {
     exit('Illegal access');
@@ -14,35 +16,35 @@ if (!defined('IS_ADMIN_FLAG')) {
 //
 class DbIoManufacturersHandler extends DbIoHandler
 {
-    public static function getHandlerInformation()
+    public static function getHandlerInformation(): false|array
     {
-        DbIoHandler::loadHandlerMessageFile('Manufacturers'); 
-        return array(
+        DbIoHandler::loadHandlerMessageFile('Manufacturers');
+        return [
             'version' => '2.0.0',
             'handler_version' => '1.2.0',
             'include_header' => true,
             'export_only' => false,
             'description' => DBIO_MANUFACTURERS_DESCRIPTION,
-        );
+        ];
     }
 
     // -----
     // This function, called at the beginning of an export operation, gives the handler an opportunity to perform
     // some special checks.
-    // 
-    public function exportInitialize($language = 'all')
+    //
+    public function exportInitialize($language = 'all'): bool
     {
         $initialized = parent::exportInitialize($language);
         if ($initialized === true) {
             if ($this->where_clause !== '') {
                 $this->where_clause .= ' AND ';
-        
+
             }
             $export_language = ($this->export_language === 'all') ? $this->languages[$this->first_language_code] : $this->languages[$this->export_language];
             $this->where_clause .= "m.manufacturers_id = mi.manufacturers_id AND mi.languages_id = $export_language";
             $this->order_by_clause .= 'm.manufacturers_id ASC';
-            
-            $this->saved_data['manufacturers_info_sql'] = 
+
+            $this->saved_data['manufacturers_info_sql'] =
                 'SELECT * FROM ' . TABLE_MANUFACTURERS_INFO . ' WHERE manufacturers_id = %u AND languages_id = %u LIMIT 1';
         }
         return $initialized;
@@ -52,7 +54,6 @@ class DbIoManufacturersHandler extends DbIoHandler
     {
         global $db;
 
-        $fields = parent::exportPrepareFields($fields);
         $default_language_code = $this->first_language_code;
 
         if ($this->export_language === 'all') {
@@ -62,9 +63,8 @@ class DbIoManufacturersHandler extends DbIoHandler
                 if ($language_code !== $default_language_code) {
                     $description_info = $db->Execute(sprintf($this->saved_data['manufacturers_info_sql'], $manufacturers_id, $language_id));
                     if (!$description_info->EOF) {
-                        $encoded_fields = $this->exportEncodeData($description_info->fields);
-                        foreach ($encoded_fields as $field_name => $field_value) {
-                            if ($field_name != 'manufacturers_id' && $field_name != 'languages_id') {
+                        foreach ($description_info->fields as $field_name => $field_value) {
+                            if ($field_name !== 'manufacturers_id' && $field_name !== 'languages_id') {
                                 $fields[$field_name . '_' . $language_code] = $field_value;
                             }
                         }
@@ -72,7 +72,7 @@ class DbIoManufacturersHandler extends DbIoHandler
                 }
             }
         }
-        return $fields;
+        return parent::exportPrepareFields($fields);
     }
 
 // ----------------------------------------------------------------------------------
@@ -83,7 +83,7 @@ class DbIoManufacturersHandler extends DbIoHandler
     // This function, called during the overall class construction, is used to set this handler's database
     // configuration for the dbIO operations.
     //
-    protected function setHandlerConfiguration()
+    protected function setHandlerConfiguration(): void
     {
         $this->stats['report_name'] = 'Manufacturers';
         $this->config = self::getHandlerInformation();
@@ -99,7 +99,7 @@ class DbIoManufacturersHandler extends DbIoHandler
         $this->config['tables'] = [
             TABLE_MANUFACTURERS => [
                 'alias' => 'm',
-            ], 
+            ],
             TABLE_MANUFACTURERS_INFO => [
                 'alias' => 'mi',
                 'language_field' => 'languages_id',
@@ -121,18 +121,18 @@ class DbIoManufacturersHandler extends DbIoHandler
     // If we're doing an update (i.e. existing manufacturer), need to update the primary where-clause to make sure that the
     // manufacturers table alias isn't part of the string for the non-manufacturers table.
     //
-    protected function importUpdateRecordKey($table_name, $table_fields, $products_id)
+    protected function importUpdateRecordKey(string $table_name, array|false $table_fields, string|false $record_key_value): array
     {
         if ($table_name !== TABLE_MANUFACTURERS) {
             if ($this->import_is_insert === true) {
                 $table_fields['manufacturers_id'] = [
-                    'value' => $products_id,
+                    'value' => $record_key_value,
                     'type' => 'integer'
                 ];
             } else {
                 $this->where_clause = 'manufacturers_id = ' . (int)$this->key_fields['manufacturers_id'];
             }
         }
-        return parent::importUpdateRecordKey($table_name, $table_fields, $products_id);
+        return parent::importUpdateRecordKey($table_name, $table_fields, $record_key_value);
     }
 }  //-END class DbIoManufacturersHandler
